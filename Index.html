@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8">
+  <title>Nivoi bunara</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    h1 {
+      color: #0077cc;
+      margin-bottom: 10px;
+    }
+    .nivo {
+      font-size: 1.5em;
+      margin: 10px;
+    }
+    canvas {
+      max-width: 600px;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>📊 Nivoi bunara</h1>
+  <div class="nivo" id="bunar1">Bunar 1: ...</div>
+  <div class="nivo" id="bunar2">Bunar 2: ...</div>
+  <canvas id="grafikon"></canvas>
+
+  <script>
+    const token = "token_xxx"; // ← Unesi svoj Beebotte Channel Token
+    const channel = "nivoi_bunara";
+
+    const nivo1Label = document.getElementById("bunar1");
+    const nivo2Label = document.getElementById("bunar2");
+
+    const ctx = document.getElementById("grafikon").getContext("2d");
+    const grafikon = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Bunar 1',
+            data: [],
+            borderColor: '#0077cc',
+            fill: false
+          },
+          {
+            label: 'Bunar 2',
+            data: [],
+            borderColor: '#cc3300',
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          x: { title: { display: true, text: 'Vreme' } },
+          y: { title: { display: true, text: 'Nivo [m]' }, beginAtZero: true }
+        }
+      }
+    });
+
