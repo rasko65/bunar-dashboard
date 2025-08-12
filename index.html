@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bunari - Test Grafikon</title>
+  <title>Bunari - Beebotte Grafikon</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -27,14 +27,12 @@
   </style>
 </head>
 <body>
-  <h1>📊 Nivoi Bunara (Test)</h1>
+  <h1>📡 Nivoi Bunara (Beebotte)</h1>
   <div id="nivo1">Bunar 1: -- m</div>
   <div id="nivo2">Bunar 2: -- m</div>
   <canvas id="grafikon"></canvas>
 
   <script>
-    console.log("✅ Pokreće se testni grafikon...");
-
     const nivo1Label = document.getElementById("nivo1");
     const nivo2Label = document.getElementById("nivo2");
 
@@ -52,8 +50,8 @@
           },
           {
             label: "Bunar 2",
-            borderColor: "green",
-            backgroundColor: "rgba(0,255,0,0.1)",
+            borderColor: "red",
+            backgroundColor: "rgba(255,0,0,0.1)",
             data: [],
           },
         ],
@@ -78,32 +76,59 @@
       }
     });
 
-    function update() {
-      const nivo1 = Math.random() * 2;
-      const nivo2 = Math.random() * 2;
-      const vreme = new Date().toLocaleTimeString();
+    const TOKEN = "YOUR_BEEBOTTE_TOKEN"; // ← zameni svojim tokenom
+    const CHANNEL = "bunar";             // ← zameni ako koristiš drugo ime
+    const RESOURCE1 = "bunar1";
+    const RESOURCE2 = "bunar2";
 
-      console.log("🕒", vreme, "| Bunar1:", nivo1.toFixed(2), "Bunar2:", nivo2.toFixed(2));
-
-      nivo1Label.textContent = `Bunar 1: ${nivo1.toFixed(2)} m`;
-      nivo2Label.textContent = `Bunar 2: ${nivo2.toFixed(2)} m`;
-
-      grafikon.data.labels.push(vreme);
-      grafikon.data.datasets[0].data.push(nivo1);
-      grafikon.data.datasets[1].data.push(nivo2);
-      grafikon.update();
-
-      if (grafikon.data.labels.length > 20) {
-        grafikon.data.labels.shift();
-        grafikon.data.datasets[0].data.shift();
-        grafikon.data.datasets[1].data.shift();
+    async function fetchNivo(resource) {
+      const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=1`;
+      try {
+        const response = await fetch(url, {
+          headers: {
+            "X-Auth-Token": TOKEN
+          }
+        });
+        const data = await response.json();
+        if (data.length > 0) {
+          return parseFloat(data[0].data);
+        } else {
+          console.warn(`⚠️ Nema podataka za ${resource}`);
+          return null;
+        }
+      } catch (error) {
+        console.error(`❌ Greška pri čitanju ${resource}:`, error);
+        return null;
       }
     }
 
-    setInterval(update, 2000);
+    async function update() {
+      const nivo1 = await fetchNivo(RESOURCE1);
+      const nivo2 = await fetchNivo(RESOURCE2);
+      const vreme = new Date().toLocaleTimeString();
+
+      if (nivo1 !== null && nivo2 !== null) {
+        nivo1Label.textContent = `Bunar 1: ${nivo1.toFixed(2)} m`;
+        nivo2Label.textContent = `Bunar 2: ${nivo2.toFixed(2)} m`;
+
+        grafikon.data.labels.push(vreme);
+        grafikon.data.datasets[0].data.push(nivo1);
+        grafikon.data.datasets[1].data.push(nivo2);
+        grafikon.update();
+
+        if (grafikon.data.labels.length > 20) {
+          grafikon.data.labels.shift();
+          grafikon.data.datasets[0].data.shift();
+          grafikon.data.datasets[1].data.shift();
+        }
+      }
+    }
+
+    setInterval(update, 5000); // ažuriranje na svakih 5 sekundi
   </script>
 </body>
 </html>
+
 
 
 
