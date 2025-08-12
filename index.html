@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bunari - Beebotte Grafikon</title>
+  <title>Bunari - Dva Grafika</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -15,89 +15,102 @@
     }
     h1 {
       color: #333;
+      margin-bottom: 10px;
     }
-    #nivo1, #nivo2 {
+    .nivo {
       font-size: 1.2em;
       margin: 10px 0;
     }
     canvas {
       max-width: 100%;
-      height: auto;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
   </style>
 </head>
 <body>
-  <h1>📡 Nivoi Bunara (Beebotte)</h1>
-  <div id="nivo1">Bunar 1: -- m</div>
-  <div id="nivo2">Bunar 2: -- m</div>
-  <canvas id="grafikon"></canvas>
+  <h1>📡 Nivoi Bunara</h1>
+  <div class="nivo" id="nivo1">Bunar 1: -- m</div>
+  <canvas id="grafikon1"></canvas>
+  <div class="nivo" id="nivo2">Bunar 2: -- m</div>
+  <canvas id="grafikon2"></canvas>
 
   <script>
-    const nivo1Label = document.getElementById("nivo1");
-    const nivo2Label = document.getElementById("nivo2");
-
-    const ctx = document.getElementById("grafikon").getContext("2d");
-    const grafikon = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: [],
-        datasets: [
-          {
-            label: "Bunar 1",
-            borderColor: "blue",
-            backgroundColor: "rgba(0,0,255,0.1)",
-            data: [],
-          },
-          {
-            label: "Bunar 2",
-            borderColor: "red",
-            backgroundColor: "rgba(255,0,0,0.1)",
-            data: [],
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: "Nivo (m)"
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: "Vreme"
-            }
-          }
-        }
-      }
-    });
-
     const TOKEN = "token_dlVQqzrALZ6DsGjF"; // ← zameni svojim tokenom
     const CHANNEL = "nivoi_bunara";             // ← zameni ako koristiš drugo ime
     const RESOURCE1 = "bunar1";
     const RESOURCE2 = "bunar2";
 
+    const nivo1Label = document.getElementById("nivo1");
+    const nivo2Label = document.getElementById("nivo2");
+
+    const ctx1 = document.getElementById("grafikon1").getContext("2d");
+    const ctx2 = document.getElementById("grafikon2").getContext("2d");
+
+    const grafikon1 = new Chart(ctx1, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [{
+          label: "Bunar 1",
+          borderColor: "blue",
+          backgroundColor: "rgba(0,0,255,0.1)",
+          data: [],
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            min: 0,
+            max: 10,
+            title: { display: true, text: "Nivo (m)" }
+          },
+          x: {
+            title: { display: true, text: "Vreme" }
+          }
+        }
+      }
+    });
+
+    const grafikon2 = new Chart(ctx2, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [{
+          label: "Bunar 2",
+          borderColor: "red",
+          backgroundColor: "rgba(255,0,0,0.1)",
+          data: [],
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            min: 0,
+            max: 4,
+            title: { display: true, text: "Nivo (m)" }
+          },
+          x: {
+            title: { display: true, text: "Vreme" }
+          }
+        }
+      }
+    });
+
     async function fetchNivo(resource) {
       const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=1`;
       try {
         const response = await fetch(url, {
-          headers: {
-            "X-Auth-Token": TOKEN
-          }
+          headers: { "X-Auth-Token": TOKEN }
         });
         const data = await response.json();
-        if (data.length > 0) {
-          return parseFloat(data[0].data);
-        } else {
-          console.warn(`⚠️ Nema podataka za ${resource}`);
-          return null;
-        }
+        return parseFloat(data[0]?.data);
       } catch (error) {
-        console.error(`❌ Greška pri čitanju ${resource}:`, error);
+        console.error(`Greška pri čitanju ${resource}:`, error);
         return null;
       }
     }
@@ -107,28 +120,32 @@
       const nivo2 = await fetchNivo(RESOURCE2);
       const vreme = new Date().toLocaleTimeString();
 
-      if (nivo1 !== null && nivo2 !== null) {
+      if (nivo1 !== null) {
         nivo1Label.textContent = `Bunar 1: ${nivo1.toFixed(2)} m`;
+        grafikon1.data.labels.push(vreme);
+        grafikon1.data.datasets[0].data.push(nivo1);
+        grafikon1.update();
+        if (grafikon1.data.labels.length > 20) {
+          grafikon1.data.labels.shift();
+          grafikon1.data.datasets[0].data.shift();
+        }
+      }
+
+      if (nivo2 !== null) {
         nivo2Label.textContent = `Bunar 2: ${nivo2.toFixed(2)} m`;
-
-        grafikon.data.labels.push(vreme);
-        grafikon.data.datasets[0].data.push(nivo1);
-        grafikon.data.datasets[1].data.push(nivo2);
-        grafikon.update();
-
-        if (grafikon.data.labels.length > 20) {
-          grafikon.data.labels.shift();
-          grafikon.data.datasets[0].data.shift();
-          grafikon.data.datasets[1].data.shift();
+        grafikon2.data.labels.push(vreme);
+        grafikon2.data.datasets[0].data.push(nivo2);
+        grafikon2.update();
+        if (grafikon2.data.labels.length > 20) {
+          grafikon2.data.labels.shift();
+          grafikon2.data.datasets[0].data.shift();
         }
       }
     }
 
-    setInterval(update, 5000); // ažuriranje na svakih 5 sekundi
+    setInterval(update, 5000); // osvežava na svakih 5 sekundi
   </script>
 </body>
 </html>
-
-
 
 
