@@ -1,98 +1,98 @@
 <!DOCTYPE html>
 <html lang="sr">
 <head>
-  <meta charset="UTF-8">
-  <title>Nivoi bunara</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bunari - Test Grafikon</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: sans-serif;
       text-align: center;
-      background: #f4f4f4;
+      background-color: #f4f4f4;
+      margin: 0;
       padding: 20px;
     }
     h1 {
-      color: #0077cc;
-      margin-bottom: 10px;
+      color: #333;
     }
-    .nivo {
-      font-size: 1.5em;
-      margin: 10px;
+    #nivo1, #nivo2 {
+      font-size: 1.2em;
+      margin: 10px 0;
     }
     canvas {
-      max-width: 600px;
-      margin: 20px auto;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 100%;
+      height: auto;
     }
   </style>
 </head>
 <body>
-  <h1>📊 Nivoi bunara</h1>
-  <div class="nivo" id="bunar1">Bunar 1: ...</div>
-  <div class="nivo" id="bunar2">Bunar 2: ...</div>
+  <h1>📊 Nivoi Bunara (Test)</h1>
+  <div id="nivo1">Bunar 1: -- m</div>
+  <div id="nivo2">Bunar 2: -- m</div>
   <canvas id="grafikon"></canvas>
 
   <script>
-    const token = "token_dlVQqzrALZ6DsGjF"; // ← Unesi svoj Beebotte Channel Token
-    const channel = "nivoi_bunara";
+    console.log("✅ Pokreće se testni grafikon...");
 
-    const nivo1Label = document.getElementById("bunar1");
-    const nivo2Label = document.getElementById("bunar2");
+    const nivo1Label = document.getElementById("nivo1");
+    const nivo2Label = document.getElementById("nivo2");
 
     const ctx = document.getElementById("grafikon").getContext("2d");
     const grafikon = new Chart(ctx, {
-      type: 'line',
+      type: "line",
       data: {
         labels: [],
         datasets: [
           {
-            label: 'Bunar 1',
+            label: "Bunar 1",
+            borderColor: "blue",
+            backgroundColor: "rgba(0,0,255,0.1)",
             data: [],
-            borderColor: '#0077cc',
-            fill: false
           },
           {
-            label: 'Bunar 2',
+            label: "Bunar 2",
+            borderColor: "green",
+            backgroundColor: "rgba(0,255,0,0.1)",
             data: [],
-            borderColor: '#cc3300',
-            fill: false
-          }
-        ]
+          },
+        ],
       },
       options: {
         responsive: true,
         scales: {
-          x: { title: { display: true, text: 'Vreme' } },
-          y: { title: { display: true, text: 'Nivo [m]' }, beginAtZero: true }
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: "Nivo (m)"
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: "Vreme"
+            }
+          }
         }
       }
     });
 
-    async function fetchNivo(resource) {
-      const url = `https://api.beebotte.com/v1/data/read/${channel}/${resource}?limit=1`;
-      const response = await fetch(url, {
-        headers: { "X-Auth-Token": token }
-      });
-      const data = await response.json();
-      return data[0]?.data;
-    }
-
-    async function update() {
-      const nivo1 = await fetchNivo("bunar1");
-      const nivo2 = await fetchNivo("bunar2");
+    function update() {
+      const nivo1 = Math.random() * 2;
+      const nivo2 = Math.random() * 2;
       const vreme = new Date().toLocaleTimeString();
 
-      nivo1Label.textContent = `Bunar 1: ${nivo1} m`;
-      nivo2Label.textContent = `Bunar 2: ${nivo2} m`;
+      console.log("🕒", vreme, "| Bunar1:", nivo1.toFixed(2), "Bunar2:", nivo2.toFixed(2));
+
+      nivo1Label.textContent = `Bunar 1: ${nivo1.toFixed(2)} m`;
+      nivo2Label.textContent = `Bunar 2: ${nivo2.toFixed(2)} m`;
 
       grafikon.data.labels.push(vreme);
       grafikon.data.datasets[0].data.push(nivo1);
       grafikon.data.datasets[1].data.push(nivo2);
       grafikon.update();
 
-      // Ograniči broj tačaka na 20
       if (grafikon.data.labels.length > 20) {
         grafikon.data.labels.shift();
         grafikon.data.datasets[0].data.shift();
@@ -100,10 +100,10 @@
       }
     }
 
-    update();
-    setInterval(update, 15000); // osvežava na svakih 15 sekundi
+    setInterval(update, 2000);
   </script>
 </body>
 </html>
+
 
 
