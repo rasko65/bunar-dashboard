@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bunari - Dva Grafika</title>
+  <title>Bunari – Monitoring Nivoa</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
@@ -29,8 +29,12 @@
       margin-left: 8px;
       vertical-align: middle;
     }
-    .online { background: green; }
-    .offline { background: red; }
+    .online {
+      background: green;
+    }
+    .offline {
+      background: red;
+    }
     canvas {
       max-width: 100%;
       margin: 20px auto;
@@ -41,36 +45,46 @@
   </style>
 </head>
 <body>
-  <h1>Nivoi BUNARA
+  <h1>
+    📡 Nivoi bunara
     <span id="globalStatus" class="status offline" title="Offline"></span>
   </h1>
 
-  <div class="nivo" id="nivo1">Bunar 1: -- m</div>
+  <div class="nivo" id="nivo1">
+    Bunar 1: -- m
+    <span id="status1" class="status offline" title="Offline"></span>
+  </div>
   <canvas id="grafikon1"></canvas>
 
-  <div class="nivo" id="nivo2">Bunar 2: -- m</div>
+  <div class="nivo" id="nivo2">
+    Bunar 2: -- m
+    <span id="status2" class="status offline" title="Offline"></span>
+  </div>
   <canvas id="grafikon2"></canvas>
 
   <script>
-    // Konfiguracija
-    const TOKEN            = "token_dlVQqzrALZ6DsGjF";
-    const CHANNEL          = "nivoi_bunara";
-    const RESOURCE1        = "bunar1";
-    const RESOURCE2        = "bunar2";
-    const REFRESH_INTERVAL = 5000; // ms
+    // === Konfiguracija ===
+    const TOKEN             = "token_dlVQqzrALZ6DsGjF";
+    const CHANNEL           = "nivoi_bunara";
+    const RESOURCE1         = "bunar1";
+    const RESOURCE2         = "bunar2";
+    const REFRESH_INTERVAL  = 5000;      // ms
+    const OFFLINE_THRESHOLD = 30_000;    // ms (npr. 1,5× period slanja)
 
-    // Referenca na DOM
+    // DOM reference
     const nivo1Label   = document.getElementById("nivo1");
     const nivo2Label   = document.getElementById("nivo2");
     const globalStatus = document.getElementById("globalStatus");
+    const status1      = document.getElementById("status1");
+    const status2      = document.getElementById("status2");
 
-    // Chart.js inicijalizacija
+    // Chart.js setup
     const ctx1 = document.getElementById("grafikon1").getContext("2d");
     const ctx2 = document.getElementById("grafikon2").getContext("2d");
 
     const grafikon1 = new Chart(ctx1, {
       type: "line",
-      data: { labels: [], datasets: [{ label: "Bunar 1", borderColor: "blue", backgroundColor: "rgba(0,0,255,0.1)", data: [] }] },
+      data:    { labels: [], datasets: [{ label: "Bunar 1", borderColor: "blue", backgroundColor: "rgba(0,0,255,0.1)", data: [] }] },
       options: {
         responsive: true,
         scales: {
@@ -82,7 +96,7 @@
 
     const grafikon2 = new Chart(ctx2, {
       type: "line",
-      data: { labels: [], datasets: [{ label: "Bunar 2", borderColor: "red", backgroundColor: "rgba(255,0,0,0.1)", data: [] }] },
+      data:    { labels: [], datasets: [{ label: "Bunar 2", borderColor: "red", backgroundColor: "rgba(255,0,0,0.1)", data: [] }] },
       options: {
         responsive: true,
         scales: {
@@ -92,21 +106,21 @@
       }
     });
 
-    // Pamćenje poslednjih timestamp-ova
+    // Čuvamo poslednje timestamps
     let lastCreatedAt1 = 0;
     let lastCreatedAt2 = 0;
 
-    // Učita zadnji podatak sa Beebotte
+    // Funkcija za čitanje jednog zapisa sa Beebotte
     async function fetchNivo(resource) {
       const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=1&cacheBust=${Date.now()}`;
       try {
         const resp = await fetch(url, {
           headers: { "X-Auth-Token": TOKEN },
-          cache: "no-store"
+          cache:   "no-store"
         });
         const arr = await resp.json();
         if (!Array.isArray(arr) || arr.length === 0) return null;
-        const val = parseFloat(arr[0].data);
+        const val         = parseFloat(arr[0].data);
         const createdAtMs = new Date(arr[0].created_at).getTime();
         return { value: val, createdAtMs };
       } catch (e) {
@@ -121,24 +135,35 @@
         fetchNivo(RESOURCE1),
         fetchNivo(RESOURCE2)
       ]);
-      const ts = new Date().toLocaleTimeString();
+      const nowMs = Date.now();
+      const ts    = new Date(nowMs).toLocaleTimeString();
 
-      // Detekcija pristizanja novih podataka
-      const online1 = r1 && r1.createdAtMs > lastCreatedAt1;
-      const online2 = r2 && r2.createdAtMs > lastCreatedAt2;
+      // Ažuriraj timestamps ako je stigao nov podatak
+      if (r1 && r1.createdAtMs > lastCreatedAt1) {
+        lastCreatedAt1 = r1.createdAtMs;
+      }
+      if (r2 && r2.createdAtMs > lastCreatedAt2) {
+        lastCreatedAt2 = r2.createdAtMs;
+      }
 
-      // Ako je stigao novi, zabeleži timestamp
-      if (online1) lastCreatedAt1 = r1.createdAtMs;
-      if (online2) lastCreatedAt2 = r2.createdAtMs;
+      // Provera online/offline po pragu
+      const online1 = (nowMs - lastCreatedAt1) < OFFLINE_THRESHOLD;
+      const online2 = (nowMs - lastCreatedAt2) < OFFLINE_THRESHOLD;
 
-      // Globalni status: crveno ako bar jedan bunar nema nov podatak
+      // Globalni status
       const anyOffline = !online1 || !online2;
       globalStatus.className = `status ${anyOffline ? "offline" : "online"}`;
       globalStatus.title     = anyOffline ? "Offline" : "Online";
 
-      // Bunar 1
-      if (online1) {
-        nivo1Label.textContent = `Bunar 1: ${r1.value.toFixed(2)} m`;
+      // Status pored svakog bunara
+      status1.className = `status ${online1 ? "online" : "offline"}`;
+      status1.title     = online1 ? "Online" : "Offline";
+      status2.className = `status ${online2 ? "online" : "offline"}`;
+      status2.title     = online2 ? "Online" : "Offline";
+
+      // Ažuriranje grafikona i labela za Bunar 1
+      if (online1 && r1) {
+        nivo1Label.firstChild.textContent = `Bunar 1: ${r1.value.toFixed(2)} m`;
         grafikon1.data.labels.push(ts);
         grafikon1.data.datasets[0].data.push(r1.value);
         if (grafikon1.data.labels.length > 20) {
@@ -146,15 +171,15 @@
           grafikon1.data.datasets[0].data.shift();
         }
       } else {
-        nivo1Label.textContent = "Bunar 1: OFFLINE";
+        nivo1Label.firstChild.textContent = "Bunar 1: OFFLINE";
         grafikon1.data.labels.length = 0;
         grafikon1.data.datasets[0].data.length = 0;
       }
       grafikon1.update();
 
-      // Bunar 2
-      if (online2) {
-        nivo2Label.textContent = `Bunar 2: ${r2.value.toFixed(2)} m`;
+      // Ažuriranje grafikona i labela za Bunar 2
+      if (online2 && r2) {
+        nivo2Label.firstChild.textContent = `Bunar 2: ${r2.value.toFixed(2)} m`;
         grafikon2.data.labels.push(ts);
         grafikon2.data.datasets[0].data.push(r2.value);
         if (grafikon2.data.labels.length > 20) {
@@ -162,7 +187,7 @@
           grafikon2.data.datasets[0].data.shift();
         }
       } else {
-        nivo2Label.textContent = "Bunar 2: OFFLINE";
+        nivo2Label.firstChild.textContent = "Bunar 2: OFFLINE";
         grafikon2.data.labels.length = 0;
         grafikon2.data.datasets[0].data.length = 0;
       }
@@ -171,7 +196,6 @@
 
     // Start periodicnog osvežavanja
     setInterval(update, REFRESH_INTERVAL);
-    // i pokreni odmah jednom
     update();
   </script>
 </body>
