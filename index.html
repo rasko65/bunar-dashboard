@@ -1,99 +1,105 @@
-
 <!DOCTYPE html>
 <html lang="sr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Bunar Monitoring</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f4f4f4;
-      color: #333;
-      text-align: center;
-    }
-
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-
-    h1 {
-      color: #007bff;
-    }
-
-    .error {
-      color: red;
-      font-weight: bold;
-    }
-
-    .btn {
-      display: inline-block;
-      margin-top: 20px;
-      padding: 10px 20px;
-      background: #007bff;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
-    }
-
-    .data-box {
-      margin-top: 30px;
-      font-size: 1.2em;
-      background: #e9f5ff;
-      padding: 15px;
-      border-radius: 8px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Nivoi Bunara</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; }
+  .offline { color: red; font-weight: bold; }
+</style>
 </head>
 <body>
-  <div class="container" id="main">
-    <h1>🌊 Bunar Monitoring</h1>
-    <p>Učitavanje podataka...</p>
-  </div>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const channel = params.get("channel");
-    const resource = params.get("resource");
-    const token = params.get("token");
+<h1>Nivoi Bunara</h1>
+<p id="nivo1Label">Bunar 1: —</p>
+<canvas id="grafikon1" width="400" height="200"></canvas>
 
-    if (!channel || !resource || !token) {
-      document.getElementById("main").innerHTML = `
-        <h1>❌ Greška</h1>
-        <p class="error">Nedostaje kanal, resurs ili token u URL-u!</p>
-        <p>Molimo otvorite stranicu sa svim parametrima:</p>
-        <code>?channel=bunar&resource=nivo&token=abc123</code>
-        <br>
-        <a class="btn" href="?channel=bunar&resource=nivo&token=abc123">Otvori sa podrazumevanim parametrima</a>
-      `;
-      throw new Error("Nedostaju URL parametri");
+<p id="nivo2Label">Bunar 2: —</p>
+<canvas id="grafikon2" width="400" height="200"></canvas>
+
+<script>
+const CHANNEL = "nivoi_bunara";   // 🔹 Unesi ime kanala sa Beebotte
+const RESOURCE1 = "bunar1";           // 🔹 Unesi ime resursa za bunar 1
+const RESOURCE2 = "bunar2";           // 🔹 Unesi ime resursa za bunar 2
+const TOKEN = "token_dlVQqzrALZ6DsGjF";     // 🔹 Unesi Beebotte read token
+const STALE_LIMIT_MS = 60000;        // 1 minut
+
+const nivo1Label = document.getElementById('nivo1Label');
+const nivo2Label = document.getElementById('nivo2Label');
+
+const grafikon1 = new Chart(document.getElementById('grafikon1'), {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Bunar 1', data: [] }] },
+  options: { responsive: true }
+});
+
+const grafikon2 = new Chart(document.getElementById('grafikon2'), {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Bunar 2', data: [] }] },
+  options: { responsive: true }
+});
+
+async function fetchNivo(resource) {
+  const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=1&token=${TOKEN}`;
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.length > 0) {
+      const value = data[0].data;
+      const ts = new Date(data[0].ts).getTime();
+      return { value, ts };
     }
+  } catch (err) {
+    console.error("Greška pri čitanju nivoa:", err);
+  }
+  return null;
+}
 
-    // Ako su parametri tu, prikazujemo ih (kasnije ovde ide Beebotte fetch)
-    document.getElementById("main").innerHTML = `
-      <h1>🌊 Bunar Monitoring</h1>
-      <div class="data-box">
-        <p><strong>Kanal:</strong> ${channel}</p>
-        <p><strong>Resurs:</strong> ${resource}</p>
-        <p><strong>Token:</strong> ${token}</p>
-        <p>📡 Podaci će biti prikazani ovde...</p>
-      </div>
-    `;
+async function update() {
+  const nivo1Data = await fetchNivo(RESOURCE1);
+  const nivo2Data = await fetchNivo(RESOURCE2);
+  const vreme = new Date().toLocaleTimeString();
 
-    // Ovde možeš dodati Beebotte API poziv i prikaz podataka
-    // Primer:
-    // fetch(`https://api.beebotte.com/v1/data/read/${channel}/${resource}?limit=1`, {
-    //   headers: { "X-Auth-Token": token }
-    // }).then(res => res.json()).then(data => {
-    //   // Prikaz podataka
-    // });
-  </script>
+  if (nivo1Data) {
+    const stale = Date.now() - nivo1Data.ts > STALE_LIMIT_MS;
+    nivo1Label.textContent = stale
+      ? `Bunar 1: OFFLINE`
+      : `Bunar 1: ${nivo1Data.value.toFixed(2)} m`;
+    nivo1Label.className = stale ? 'offline' : '';
+
+    if (!stale) {
+      grafikon1.data.labels.push(vreme);
+      grafikon1.data.datasets[0].data.push(nivo1Data.value);
+      grafikon1.update();
+      if (grafikon1.data.labels.length > 20) {
+        grafikon1.data.labels.shift();
+        grafikon1.data.datasets[0].data.shift();
+      }
+    }
+  }
+
+  if (nivo2Data) {
+    const stale = Date.now() - nivo2Data.ts > STALE_LIMIT_MS;
+    nivo2Label.textContent = stale
+      ? `Bunar 2: OFFLINE`
+      : `Bunar 2: ${nivo2Data.value.toFixed(2)} m`;
+    nivo2Label.className = stale ? 'offline' : '';
+
+    if (!stale) {
+      grafikon2.data.labels.push(vreme);
+      grafikon2.data.datasets[0].data.push(nivo2Data.value);
+      grafikon2.update();
+      if (grafikon2.data.labels.length > 20) {
+        grafikon2.data.labels.shift();
+        grafikon2.data.datasets[0].data.shift();
+      }
+    }
+  }
+}
+
+setInterval(update, 5000); // osvežava svakih 5 sekundi
+update(); // pokreni odmah pri učitavanju
+</script>
 </body>
 </html>
