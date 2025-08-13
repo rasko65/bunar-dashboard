@@ -7,7 +7,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@4.0.1"></script>
   <script>
-    Chart.register(window['chartjs-plugin-annotation'].default); // ✅ ispravna registracija
+    Chart.register(window['chartjs-plugin-annotation'].default); // ✅ pravilna registracija
   </script>
   <style>
     body {
@@ -39,14 +39,14 @@
   </style>
 </head>
 <body>
-  <h1>📡 Nivoi Bunara</h1>
+  <h1>📡 NIvoi Bunara</h1>
   <div class="nivo" id="nivo1">Bunar 1: -- m</div>
   <canvas id="grafikon1"></canvas>
   <div class="nivo" id="nivo2">Bunar 2: -- m</div>
   <canvas id="grafikon2"></canvas>
 
   <script>
-    const TOKEN = "token_dlVQqzrALZ6DsGjF"; // ← zameni svojim tokenom
+    const TOKEN = "token_dlVQqzrALZ6DsGjF";
     const CHANNEL = "nivoi_bunara";
     const RESOURCE1 = "bunar1";
     const RESOURCE2 = "bunar2";
@@ -76,13 +76,13 @@
           }
         },
         scales: {
+          x: {
+            title: { display: true, text: "Vreme" }
+          },
           y: {
             min: 0,
             max: 10,
             title: { display: true, text: "Nivo (m)" }
-          },
-          x: {
-            title: { display: true, text: "Vreme" }
           }
         }
       }
@@ -107,13 +107,13 @@
           }
         },
         scales: {
+          x: {
+            title: { display: true, text: "Vreme" }
+          },
           y: {
             min: 0,
             max: 4,
             title: { display: true, text: "Nivo (m)" }
-          },
-          x: {
-            title: { display: true, text: "Vreme" }
           }
         }
       }
@@ -148,6 +148,7 @@
     }
 
     function dodajLiniju(grafikon, vreme, id) {
+      console.log(`📍 Dodajem liniju: ${id}`);
       grafikon.options.plugins.annotation.annotations[id] = {
         type: 'line',
         scaleID: 'x',
