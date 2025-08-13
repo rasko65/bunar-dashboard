@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="sr">
 <head>
@@ -126,11 +125,12 @@
         const data = await response.json();
         if (data.length > 0) {
           const vrednost = parseFloat(data[0].data);
-          const timestamp = new Date(data[0].timestamp);
+          const timestamp = new Date(data[0].created_at); // ← ispravno
           const sada = new Date();
           const razlika = (sada - timestamp) / 1000;
 
           if (razlika > maxAgeSeconds) {
+            console.warn(`⚠️ ${resource} podatak je star ${razlika.toFixed(0)} sekundi`);
             return { vrednost: null, zastarelo: true };
           }
 
@@ -139,6 +139,7 @@
           return { vrednost: null, zastarelo: true };
         }
       } catch (error) {
+        console.error(`❌ Greška pri čitanju ${resource}:`, error);
         return { vrednost: null, zastarelo: true };
       }
     }
