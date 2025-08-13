@@ -5,38 +5,42 @@
 <title>Nivoi Bunara</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; }
+  body { font-family: Arial, sans-serif; margin: 20px; background: #f7f7f7; }
+  h1 { text-align: center; }
   .offline { color: red; font-weight: bold; }
+  canvas { background: white; border-radius: 6px; padding: 10px; }
 </style>
 </head>
 <body>
 
-<h1>Nivoi Bunara</h1>
-<p id="nivo1Label">Bunar 1: —</p>
+<h1>📊 Nivoi Bunara</h1>
+
+<h3 id="nivo1Label">Bunar 1: —</h3>
 <canvas id="grafikon1" width="400" height="200"></canvas>
 
-<p id="nivo2Label">Bunar 2: —</p>
+<h3 id="nivo2Label">Bunar 2: —</h3>
 <canvas id="grafikon2" width="400" height="200"></canvas>
 
 <script>
-const CHANNEL = "nivoi_bunara";   // 🔹 Unesi ime kanala sa Beebotte
-const RESOURCE1 = "bunar1";           // 🔹 Unesi ime resursa za bunar 1
-const RESOURCE2 = "bunar2";           // 🔹 Unesi ime resursa za bunar 2
-const TOKEN = "token_dlVQqzrALZ6DsGjF";     // 🔹 Unesi Beebotte read token
-const STALE_LIMIT_MS = 60000;        // 1 minut
+/* 🔹 Podesi Beebotte podatke ovde */
+const CHANNEL   = "nivoi_bunara"; // npr. "bunari"
+const RESOURCE1 = "bunar1";
+const RESOURCE2 = "bunar2";
+const TOKEN     = "token_dlVQqzrALZ6DsGjF";
+const STALE_LIMIT_MS = 60000; // 1 minut
 
 const nivo1Label = document.getElementById('nivo1Label');
 const nivo2Label = document.getElementById('nivo2Label');
 
 const grafikon1 = new Chart(document.getElementById('grafikon1'), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Bunar 1', data: [] }] },
+  data: { labels: [], datasets: [{ label: 'Bunar 1 (m)', data: [], borderColor: 'blue', fill: false }] },
   options: { responsive: true }
 });
 
 const grafikon2 = new Chart(document.getElementById('grafikon2'), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Bunar 2', data: [] }] },
+  data: { labels: [], datasets: [{ label: 'Bunar 2 (m)', data: [], borderColor: 'green', fill: false }] },
   options: { responsive: true }
 });
 
@@ -67,15 +71,14 @@ async function update() {
       ? `Bunar 1: OFFLINE`
       : `Bunar 1: ${nivo1Data.value.toFixed(2)} m`;
     nivo1Label.className = stale ? 'offline' : '';
-
     if (!stale) {
       grafikon1.data.labels.push(vreme);
       grafikon1.data.datasets[0].data.push(nivo1Data.value);
-      grafikon1.update();
       if (grafikon1.data.labels.length > 20) {
         grafikon1.data.labels.shift();
         grafikon1.data.datasets[0].data.shift();
       }
+      grafikon1.update();
     }
   }
 
@@ -85,21 +88,22 @@ async function update() {
       ? `Bunar 2: OFFLINE`
       : `Bunar 2: ${nivo2Data.value.toFixed(2)} m`;
     nivo2Label.className = stale ? 'offline' : '';
-
     if (!stale) {
       grafikon2.data.labels.push(vreme);
       grafikon2.data.datasets[0].data.push(nivo2Data.value);
-      grafikon2.update();
       if (grafikon2.data.labels.length > 20) {
         grafikon2.data.labels.shift();
         grafikon2.data.datasets[0].data.shift();
       }
+      grafikon2.update();
     }
   }
 }
 
-setInterval(update, 5000); // osvežava svakih 5 sekundi
-update(); // pokreni odmah pri učitavanju
+setInterval(update, 5000); // osvežavanje svakih 5 sekundi
+update(); // pokreni odmah
 </script>
+
 </body>
 </html>
+
