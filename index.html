@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bunari - Signalne linije</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@4.0.1"></script>
   <script>
-    Chart.register(window['chartjs-plugin-annotation']); // ✅ registracija plugina
+    Chart.register(window['chartjs-plugin-annotation'].default); // ✅ ispravna registracija
   </script>
   <style>
     body {
@@ -39,7 +39,7 @@
   </style>
 </head>
 <body>
-  <h1> Nivoi Bunara</h1>
+  <h1>📡 Nivoi Bunara</h1>
   <div class="nivo" id="nivo1">Bunar 1: -- m</div>
   <canvas id="grafikon1"></canvas>
   <div class="nivo" id="nivo2">Bunar 2: -- m</div>
@@ -47,7 +47,7 @@
 
   <script>
     const TOKEN = "token_dlVQqzrALZ6DsGjF"; // ← zameni svojim tokenom
-    const CHANNEL = "nivoi_bunara";             // ← zameni ako koristiš drugo ime
+    const CHANNEL = "nivoi_bunara";
     const RESOURCE1 = "bunar1";
     const RESOURCE2 = "bunar2";
 
@@ -150,7 +150,6 @@
     function dodajLiniju(grafikon, vreme, id) {
       grafikon.options.plugins.annotation.annotations[id] = {
         type: 'line',
-        mode: 'vertical',
         scaleID: 'x',
         value: vreme,
         borderColor: 'red',
@@ -158,7 +157,7 @@
         label: {
           content: 'Prekid',
           enabled: true,
-          position: 'top'
+          position: 'start'
         }
       };
       grafikon.update();
@@ -202,3 +201,4 @@
   </script>
 </body>
 </html>
+
