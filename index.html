@@ -2,24 +2,50 @@
 <html lang="sr">
 <head>
 <meta charset="UTF-8">
-<title>NIVOI Bunara</title>
+<title>Nivoi Bunara</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; margin: 20px; background: #f7f7f7; }
-  h1 { text-align: center; }
-  .offline { color: red; font-weight: bold; }
-  canvas { background: white; border-radius: 6px; padding: 10px; }
+  body {
+    font-family: Arial, sans-serif;
+    margin: 10px;
+    background: #f7f7f7;
+  }
+  h1 {
+    text-align: center;
+    font-size: 1.4em;
+  }
+  .offline {
+    color: red;
+    font-weight: bold;
+  }
+  .chart-container {
+    position: relative;
+    width: 100%;
+    height: 250px; /* prilagođeno za mobilni ekran */
+    margin-bottom: 20px;
+  }
+  canvas {
+    max-width: 100%;
+    height: auto;
+    background: white;
+    border-radius: 6px;
+    padding: 5px;
+  }
 </style>
 </head>
 <body>
 
-<h1>📊 NIVOI Bunara</h1>
+<h1>📊 Nivoi Bunara</h1>
 
 <h3 id="nivo1Label">Bunar 1: —</h3>
-<canvas id="grafikon1" width="400" height="200"></canvas>
+<div class="chart-container">
+  <canvas id="grafikon1"></canvas>
+</div>
 
 <h3 id="nivo2Label">Bunar 2: —</h3>
-<canvas id="grafikon2" width="400" height="200"></canvas>
+<div class="chart-container">
+  <canvas id="grafikon2"></canvas>
+</div>
 
 <script>
 /* 🔹 Podesi Beebotte podatke ovde */
@@ -34,14 +60,44 @@ const nivo2Label = document.getElementById('nivo2Label');
 
 const grafikon1 = new Chart(document.getElementById('grafikon1'), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Bunar 1 (m)', data: [], borderColor: 'blue', fill: false }] },
-  options: { responsive: true }
+  data: { labels: [], datasets: [{
+    label: 'Bunar 1 (m)',
+    data: [],
+    borderColor: 'blue',
+    borderWidth: 2,
+    pointRadius: 3,
+    fill: false
+  }] },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { font: { size: 14 } } } },
+    scales: {
+      x: { ticks: { font: { size: 12 } } },
+      y: { ticks: { font: { size: 12 } } }
+    }
+  }
 });
 
 const grafikon2 = new Chart(document.getElementById('grafikon2'), {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Bunar 2 (m)', data: [], borderColor: 'green', fill: false }] },
-  options: { responsive: true }
+  data: { labels: [], datasets: [{
+    label: 'Bunar 2 (m)',
+    data: [],
+    borderColor: 'green',
+    borderWidth: 2,
+    pointRadius: 3,
+    fill: false
+  }] },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { font: { size: 14 } } } },
+    scales: {
+      x: { ticks: { font: { size: 12 } } },
+      y: { ticks: { font: { size: 12 } } }
+    }
+  }
 });
 
 async function fetchNivo(resource) {
