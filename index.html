@@ -1,170 +1,149 @@
 <!DOCTYPE html>
 <html lang="sr">
 <head>
-<meta charset="UTF-8">
-<title>Nivoi Bunara - LIVE</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 10px;
-    background: #f7f7f7;
-  }
-  h1 {
-    text-align: center;
-    font-size: 1.4em;
-  }
-  .offline {
-    color: red;
-    font-weight: bold;
-  }
-  .chart-container {
-    position: relative;
-    width: 100%;
-    height: 250px;
-    margin-bottom: 20px;
-  }
-  canvas {
-    max-width: 100%;
-    height: auto;
-    background: white;
-    border-radius: 6px;
-    padding: 5px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bunari - Dva Grafika</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .nivo {
+      font-size: 1.2em;
+      margin: 10px 0;
+    }
+    canvas {
+      max-width: 100%;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+  </style>
 </head>
 <body>
-
-<h1>📡 NIVOI Bunara - LIVE</h1>
-
-<h3 id="nivo1Label">Bunar 1: —</h3>
-<div class="chart-container">
+  <h1>📡 Nivoi BUNARA</h1>
+  <div class="nivo" id="nivo1">Bunar 1: -- m</div>
   <canvas id="grafikon1"></canvas>
-</div>
-
-<h3 id="nivo2Label">Bunar 2: —</h3>
-<div class="chart-container">
+  <div class="nivo" id="nivo2">Bunar 2: -- m</div>
   <canvas id="grafikon2"></canvas>
-</div>
 
-<script>
-/* 🔹 Podesi svoje podatke */
-const CHANNEL   = "nivoi_bunara"; // npr. "bunari"
-const RESOURCE1 = "bunar1";
-const RESOURCE2 = "bunar2";
-const TOKEN     = "token_dlVQqzrALZ6DsGjF";
-const STALE_LIMIT_MS = 60000;         // 1 minut bez podatka = offline
+  <script>
+    const TOKEN = "token_dlVQqzrALZ6DsGjF"; // ← zameni svojim tokenom
+    const CHANNEL = "nivoi_bunara";             // ← zameni ako koristiš drugo ime
+    const RESOURCE1 = "bunar1";
+    const RESOURCE2 = "bunar2";
 
-const nivo1Label = document.getElementById('nivo1Label');
-const nivo2Label = document.getElementById('nivo2Label');
+    const nivo1Label = document.getElementById("nivo1");
+    const nivo2Label = document.getElementById("nivo2");
 
-const grafikon1 = new Chart(document.getElementById('grafikon1'), {
-  type: 'line',
-  data: { labels: [], datasets: [{
-    label: 'Bunar 1 (m)',
-    data: [],
-    borderColor: 'blue',
-    borderWidth: 2,
-    pointRadius: 3,
-    fill: false
-  }] },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { labels: { font: { size: 14 } } } },
-    scales: {
-      x: { ticks: { font: { size: 12 } } },
-      y: { ticks: { font: { size: 12 } } }
-    }
-  }
-});
+    const ctx1 = document.getElementById("grafikon1").getContext("2d");
+    const ctx2 = document.getElementById("grafikon2").getContext("2d");
 
-const grafikon2 = new Chart(document.getElementById('grafikon2'), {
-  type: 'line',
-  data: { labels: [], datasets: [{
-    label: 'Bunar 2 (m)',
-    data: [],
-    borderColor: 'green',
-    borderWidth: 2,
-    pointRadius: 3,
-    fill: false
-  }] },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { labels: { font: { size: 14 } } } },
-    scales: {
-      x: { ticks: { font: { size: 12 } } },
-      y: { ticks: { font: { size: 12 } } }
-    }
-  }
-});
-
-/* 📡 MQTT povezivanje */
-const client = mqtt.connect('wss://mqtt.beebotte.com:443/mqtt', {
-  username: `token:${TOKEN}`,
-  password: '' // prazno za Beebotte
-});
-
-let lastUpdate1 = 0;
-let lastUpdate2 = 0;
-
-client.on('connect', () => {
-  console.log("Povezano na Beebotte MQTT");
-  client.subscribe(`${CHANNEL}/${RESOURCE1}`);
-  client.subscribe(`${CHANNEL}/${RESOURCE2}`);
-});
-
-client.on('message', (topic, message) => {
-  const vreme = new Date().toLocaleTimeString();
-  try {
-    const data = JSON.parse(message.toString());
-    const value = data.data;
-
-    if (topic.endsWith(RESOURCE1)) {
-      nivo1Label.textContent = `Bunar 1: ${value.toFixed(2)} m`;
-      nivo1Label.className = '';
-      lastUpdate1 = Date.now();
-      grafikon1.data.labels.push(vreme);
-      grafikon1.data.datasets[0].data.push(value);
-      if (grafikon1.data.labels.length > 20) {
-        grafikon1.data.labels.shift();
-        grafikon1.data.datasets[0].data.shift();
+    const grafikon1 = new Chart(ctx1, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [{
+          label: "Bunar 1",
+          borderColor: "blue",
+          backgroundColor: "rgba(0,0,255,0.1)",
+          data: [],
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            min: 0,
+            max: 10,
+            title: { display: true, text: "Nivo (m)" }
+          },
+          x: {
+            title: { display: true, text: "Vreme" }
+          }
+        }
       }
-      grafikon1.update();
-    }
+    });
 
-    if (topic.endsWith(RESOURCE2)) {
-      nivo2Label.textContent = `Bunar 2: ${value.toFixed(2)} m`;
-      nivo2Label.className = '';
-      lastUpdate2 = Date.now();
-      grafikon2.data.labels.push(vreme);
-      grafikon2.data.datasets[0].data.push(value);
-      if (grafikon2.data.labels.length > 20) {
-        grafikon2.data.labels.shift();
-        grafikon2.data.datasets[0].data.shift();
+    const grafikon2 = new Chart(ctx2, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [{
+          label: "Bunar 2",
+          borderColor: "red",
+          backgroundColor: "rgba(255,0,0,0.1)",
+          data: [],
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            min: 0,
+            max: 4,
+            title: { display: true, text: "Nivo (m)" }
+          },
+          x: {
+            title: { display: true, text: "Vreme" }
+          }
+        }
       }
-      grafikon2.update();
+    });
+
+    async function fetchNivo(resource) {
+      const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=1`;
+      try {
+        const response = await fetch(url, {
+          headers: { "X-Auth-Token": TOKEN }
+        });
+        const data = await response.json();
+        return parseFloat(data[0]?.data);
+      } catch (error) {
+        console.error(`Greška pri čitanju ${resource}:`, error);
+        return null;
+      }
     }
 
-  } catch (e) {
-    console.error("Greška parsiranja poruke:", e);
-  }
-});
+    async function update() {
+      const nivo1 = await fetchNivo(RESOURCE1);
+      const nivo2 = await fetchNivo(RESOURCE2);
+      const vreme = new Date().toLocaleTimeString();
 
-/* ⏱ Provera da li su podaci zastareli */
-setInterval(() => {
-  if (Date.now() - lastUpdate1 > STALE_LIMIT_MS) {
-    nivo1Label.textContent = `Bunar 1: OFFLINE`;
-    nivo1Label.className = 'offline';
-  }
-  if (Date.now() - lastUpdate2 > STALE_LIMIT_MS) {
-    nivo2Label.textContent = `Bunar 2: OFFLINE`;
-    nivo2Label.className = 'offline';
-  }
-}, 5000);
+      if (nivo1 !== null) {
+        nivo1Label.textContent = `Bunar 1: ${nivo1.toFixed(2)} m`;
+        grafikon1.data.labels.push(vreme);
+        grafikon1.data.datasets[0].data.push(nivo1);
+        grafikon1.update();
+        if (grafikon1.data.labels.length > 20) {
+          grafikon1.data.labels.shift();
+          grafikon1.data.datasets[0].data.shift();
+        }
+      }
 
-</script>
+      if (nivo2 !== null) {
+        nivo2Label.textContent = `Bunar 2: ${nivo2.toFixed(2)} m`;
+        grafikon2.data.labels.push(vreme);
+        grafikon2.data.datasets[0].data.push(nivo2);
+        grafikon2.update();
+        if (grafikon2.data.labels.length > 20) {
+          grafikon2.data.labels.shift();
+          grafikon2.data.datasets[0].data.shift();
+        }
+      }
+    }
+
+    setInterval(update, 5000); // osvežava na svakih 5 sekundi
+  </script>
 </body>
 </html>
