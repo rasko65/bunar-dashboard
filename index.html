@@ -1,10 +1,12 @@
+
 <!DOCTYPE html>
 <html lang="sr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bunari - Dva Grafika</title>
+  <title>Bunari - Signalne linije</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.0"></script>
   <style>
     body {
       font-family: sans-serif;
@@ -20,6 +22,10 @@
     .nivo {
       font-size: 1.2em;
       margin: 10px 0;
+    }
+    .alert {
+      color: red;
+      font-weight: bold;
     }
     canvas {
       max-width: 100%;
@@ -62,6 +68,11 @@
       },
       options: {
         responsive: true,
+        plugins: {
+          annotation: {
+            annotations: {}
+          }
+        },
         scales: {
           y: {
             min: 0,
@@ -88,6 +99,11 @@
       },
       options: {
         responsive: true,
+        plugins: {
+          annotation: {
+            annotations: {}
+          }
+        },
         scales: {
           y: {
             min: 0,
@@ -101,29 +117,61 @@
       }
     });
 
-    async function fetchNivo(resource) {
+    async function fetchNivo(resource, maxAgeSeconds = 60) {
       const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=1`;
       try {
         const response = await fetch(url, {
           headers: { "X-Auth-Token": TOKEN }
         });
         const data = await response.json();
-        return parseFloat(data[0]?.data);
+        if (data.length > 0) {
+          const vrednost = parseFloat(data[0].data);
+          const timestamp = new Date(data[0].timestamp);
+          const sada = new Date();
+          const razlika = (sada - timestamp) / 1000;
+
+          if (razlika > maxAgeSeconds) {
+            return { vrednost: null, zastarelo: true };
+          }
+
+          return { vrednost, zastarelo: false };
+        } else {
+          return { vrednost: null, zastarelo: true };
+        }
       } catch (error) {
-        console.error(`Greška pri čitanju ${resource}:`, error);
-        return null;
+        return { vrednost: null, zastarelo: true };
       }
     }
 
+    function dodajLiniju(grafikon, vreme, id) {
+      grafikon.options.plugins.annotation.annotations[id] = {
+        type: 'line',
+        mode: 'vertical',
+        scaleID: 'x',
+        value: vreme,
+        borderColor: 'red',
+        borderWidth: 2,
+        label: {
+          content: 'Prekid',
+          enabled: true,
+          position: 'top'
+        }
+      };
+      grafikon.update();
+    }
+
     async function update() {
-      const nivo1 = await fetchNivo(RESOURCE1);
-      const nivo2 = await fetchNivo(RESOURCE2);
+      const pod1 = await fetchNivo(RESOURCE1);
+      const pod2 = await fetchNivo(RESOURCE2);
       const vreme = new Date().toLocaleTimeString();
 
-      if (nivo1 !== null) {
-        nivo1Label.textContent = `Bunar 1: ${nivo1.toFixed(2)} m`;
+      if (pod1.zastarelo) {
+        nivo1Label.innerHTML = `<span class="alert">Bunar 1: ⚠️ Nema novih podataka</span>`;
+        dodajLiniju(grafikon1, vreme, `prekid1-${vreme}`);
+      } else {
+        nivo1Label.textContent = `Bunar 1: ${pod1.vrednost.toFixed(2)} m`;
         grafikon1.data.labels.push(vreme);
-        grafikon1.data.datasets[0].data.push(nivo1);
+        grafikon1.data.datasets[0].data.push(pod1.vrednost);
         grafikon1.update();
         if (grafikon1.data.labels.length > 20) {
           grafikon1.data.labels.shift();
@@ -131,10 +179,13 @@
         }
       }
 
-      if (nivo2 !== null) {
-        nivo2Label.textContent = `Bunar 2: ${nivo2.toFixed(2)} m`;
+      if (pod2.zastarelo) {
+        nivo2Label.innerHTML = `<span class="alert">Bunar 2: ⚠️ Nema novih podataka</span>`;
+        dodajLiniju(grafikon2, vreme, `prekid2-${vreme}`);
+      } else {
+        nivo2Label.textContent = `Bunar 2: ${pod2.vrednost.toFixed(2)} m`;
         grafikon2.data.labels.push(vreme);
-        grafikon2.data.datasets[0].data.push(nivo2);
+        grafikon2.data.datasets[0].data.push(pod2.vrednost);
         grafikon2.update();
         if (grafikon2.data.labels.length > 20) {
           grafikon2.data.labels.shift();
@@ -143,9 +194,7 @@
       }
     }
 
-    setInterval(update, 5000); // osvežava na svakih 5 sekundi
+    setInterval(update, 5000);
   </script>
 </body>
 </html>
-
-
