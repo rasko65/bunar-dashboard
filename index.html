@@ -29,8 +29,12 @@
       margin-left: 8px;
       vertical-align: middle;
     }
-    .online { background: green; }
-    .offline { background: red; }
+    .online {
+      background: green;
+    }
+    .offline {
+      background: red;
+    }
     canvas {
       max-width: 100%;
       margin: 20px auto;
@@ -41,7 +45,7 @@
   </style>
 </head>
 <body>
-  <h1>📡 NIVOI BUNARA 
+  <h1>📡 nivoi buara
     <span id="globalStatus" class="status offline" title="Offline"></span>
   </h1>
 
@@ -52,25 +56,33 @@
   <canvas id="grafikon2"></canvas>
 
   <script>
-    // ---------- Konfiguracija ----------
-    const TOKEN     = "token_dlVQqzrALZ6DsGjF";
-    const CHANNEL   = "nivoi_bunara";
-    const RESOURCE1 = "bunar1";
-    const RESOURCE2 = "bunar2";
+    // Konfiguracija
+    const TOKEN             = "token_dlVQqzrALZ6DsGjF";
+    const CHANNEL           = "nivoi_bunara";
+    const RESOURCE1         = "bunar1";
+    const RESOURCE2         = "bunar2";
     const OFFLINE_THRESHOLD = 20; // sekundi
 
-    // ---------- Elementi ----------
-    const nivo1Label    = document.getElementById("nivo1");
-    const nivo2Label    = document.getElementById("nivo2");
-    const globalStatus  = document.getElementById("globalStatus");
+    // Elementi
+    const nivo1Label   = document.getElementById("nivo1");
+    const nivo2Label   = document.getElementById("nivo2");
+    const globalStatus = document.getElementById("globalStatus");
 
-    // ---------- Chart.js grafikoni ----------
+    // Chart.js setup
     const ctx1 = document.getElementById("grafikon1").getContext("2d");
     const ctx2 = document.getElementById("grafikon2").getContext("2d");
 
     const grafikon1 = new Chart(ctx1, {
       type: "line",
-      data: { labels: [], datasets: [{ label: "Bunar 1", borderColor: "blue", backgroundColor: "rgba(0,0,255,0.1)", data: [] }] },
+      data: {
+        labels: [],
+        datasets: [{
+          label: "Bunar 1",
+          borderColor: "blue",
+          backgroundColor: "rgba(0,0,255,0.1)",
+          data: []
+        }]
+      },
       options: {
         responsive: true,
         scales: {
@@ -82,7 +94,15 @@
 
     const grafikon2 = new Chart(ctx2, {
       type: "line",
-      data: { labels: [], datasets: [{ label: "Bunar 2", borderColor: "red", backgroundColor: "rgba(255,0,0,0.1)", data: [] }] },
+      data: {
+        labels: [],
+        datasets: [{
+          label: "Bunar 2",
+          borderColor: "red",
+          backgroundColor: "rgba(255,0,0,0.1)",
+          data: []
+        }]
+      },
       options: {
         responsive: true,
         scales: {
@@ -92,7 +112,7 @@
       }
     });
 
-    // ---------- Funkcija za čitanje i procenu offline statusa ----------
+    // Čita zadnji podatak i vraća stanje offline
     async function fetchNivo(resource) {
       const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=1`;
       try {
@@ -105,17 +125,17 @@
         }
         const vrednost = parseFloat(data[0].data);
         const timestamp = new Date(data[0].created_at);
-        const sada = new Date();
-        const razlikaSec = (sada - timestamp) / 1000;
-        const offline = razlikaSec > OFFLINE_THRESHOLD;
+        const sada      = new Date();
+        const razlika   = (sada - timestamp) / 1000;
+        const offline   = razlika > OFFLINE_THRESHOLD;
         return { value: offline ? null : vrednost, offline };
-      } catch (error) {
-        console.error(`Greška pri čitanju ${resource}:`, error);
+      } catch (err) {
+        console.error(`Greška pri čitanju ${resource}:`, err);
         return { value: null, offline: true };
       }
     }
 
-    // ---------- Update funkcija ----------
+    // Ažurira prikaz i grafikone
     async function update() {
       const [rez1, rez2] = await Promise.all([
         fetchNivo(RESOURCE1),
@@ -123,7 +143,7 @@
       ]);
       const vreme = new Date().toLocaleTimeString();
 
-      // Globalni status
+      // Globalni indikator
       const anyOffline = rez1.offline || rez2.offline;
       globalStatus.className = `status ${anyOffline ? "offline" : "online"}`;
       globalStatus.title = anyOffline ? "Offline" : "Online";
@@ -131,6 +151,9 @@
       // Bunar 1
       if (rez1.offline) {
         nivo1Label.textContent = "Bunar 1: OFFLINE";
+        grafikon1.data.labels.length = 0;
+        grafikon1.data.datasets[0].data.length = 0;
+        grafikon1.update();
       } else {
         nivo1Label.textContent = `Bunar 1: ${rez1.value.toFixed(2)} m`;
         grafikon1.data.labels.push(vreme);
@@ -145,6 +168,9 @@
       // Bunar 2
       if (rez2.offline) {
         nivo2Label.textContent = "Bunar 2: OFFLINE";
+        grafikon2.data.labels.length = 0;
+        grafikon2.data.datasets[0].data.length = 0;
+        grafikon2.update();
       } else {
         nivo2Label.textContent = `Bunar 2: ${rez2.value.toFixed(2)} m`;
         grafikon2.data.labels.push(vreme);
@@ -157,8 +183,9 @@
       }
     }
 
-    // Pokretanje intervala
+    // Pokretanje periodičnog osvežavanja
     setInterval(update, 5000);
   </script>
 </body>
 </html>
+
