@@ -1,166 +1,34 @@
 <!DOCTYPE html>
 <html lang="sr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bunari - Dva Grafika</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      color: #333;
-      margin-bottom: 10px;
-    }
-    .nivo {
-      font-size: 1.2em;
-      margin: 10px 0;
-    }
-    .status {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      margin-left: 8px;
-      vertical-align: middle;
-    }
-    .online { background: green; }
-    .offline { background: red; }
-    canvas {
-      max-width: 100%;
-      margin: 20px auto;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>Beebotte test</title>
 </head>
 <body>
-  <h1>Nivoi BUNARA
-    <span id="globalStatus" class="status offline" title="Offline"></span>
-  </h1>
-
-  <div class="nivo" id="nivo1">Bunar 1: -- m</div>
-  <canvas id="grafikon1"></canvas>
-
-  <div class="nivo" id="nivo2">Bunar 2: -- m</div>
-  <canvas id="grafikon2"></canvas>
+  <h1>Beebotte Test</h1>
+  <pre id="output">Učitavam...</pre>
 
   <script>
-    // Konfiguracija
-    const TOKEN            = "token_dlVQqzrALZ6DsGjF";
-    const CHANNEL          = "nivoi_bunara";
-    const RESOURCE1        = "bunar1";
-    const RESOURCE2        = "bunar2";
-    const REFRESH_INTERVAL = 5000; // ms
-    const MAX_AGE          = 60000; // koliko dugo smatramo podatak "svežim" (1 minut)
+    const TOKEN    = "token_dlVQqzrALZ6DsGjF";   // stavi svoj channel token
+    const CHANNEL  = "nivoi_bunara";             // tačno ime kanala
+    const RESOURCE = "bunar1";                   // jedan resource za test
 
-    // DOM reference
-    const nivo1Label   = document.getElementById("nivo1");
-    const nivo2Label   = document.getElementById("nivo2");
-    const globalStatus = document.getElementById("globalStatus");
-
-    // Chart.js inicijalizacija
-    const ctx1 = document.getElementById("grafikon1").getContext("2d");
-    const ctx2 = document.getElementById("grafikon2").getContext("2d");
-
-    const grafikon1 = new Chart(ctx1, {
-      type: "line",
-      data: { labels: [], datasets: [{ label: "Bunar 1", borderColor: "blue", backgroundColor: "rgba(0,0,255,0.1)", data: [] }] },
-      options: {
-        responsive: true,
-        scales: {
-          y: { min: 0, max: 10, title: { display: true, text: "Nivo (m)" } },
-          x: { title: { display: true, text: "Vreme" } }
-        }
-      }
-    });
-
-    const grafikon2 = new Chart(ctx2, {
-      type: "line",
-      data: { labels: [], datasets: [{ label: "Bunar 2", borderColor: "red", backgroundColor: "rgba(255,0,0,0.1)", data: [] }] },
-      options: {
-        responsive: true,
-        scales: {
-          y: { min: 0, max: 4, title: { display: true, text: "Nivo (m)" } },
-          x: { title: { display: true, text: "Vreme" } }
-        }
-      }
-    });
-
-    // Učitaj zadnji podatak sa Beebotte
-    async function fetchNivo(resource) {
-      const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=1&cacheBust=${Date.now()}`;
+    async function testFetch() {
+      const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${RESOURCE}?limit=1&cacheBust=${Date.now()}`;
       try {
         const resp = await fetch(url, {
           headers: { "X-Auth-Token": TOKEN },
           cache: "no-store"
         });
-        const arr = await resp.json();
-        if (!Array.isArray(arr) || arr.length === 0) return null;
-        const val = parseFloat(arr[0].data);
-        const createdAtMs = new Date(arr[0].created_at).getTime();
-        return { value: val, createdAtMs };
+        const json = await resp.json();
+        document.getElementById("output").textContent = JSON.stringify(json, null, 2);
       } catch (e) {
-        console.error(`Greška pri fetchNivo(${resource}):`, e);
-        return null;
+        document.getElementById("output").textContent = "Greška: " + e;
+        console.error(e);
       }
     }
 
-    // Glavna petlja osvežavanja
-    async function update() {
-      const [r1, r2] = await Promise.all([
-        fetchNivo(RESOURCE1),
-        fetchNivo(RESOURCE2)
-      ]);
-      const ts = new Date().toLocaleTimeString();
-      const now = Date.now();
-
-      const online1 = r1 && (now - r1.createdAtMs < MAX_AGE);
-      const online2 = r2 && (now - r2.createdAtMs < MAX_AGE);
-
-      // Globalni status
-      const anyOffline = !online1 || !online2;
-      globalStatus.className = `status ${anyOffline ? "offline" : "online"}`;
-      globalStatus.title     = anyOffline ? "Offline" : "Online";
-
-      // Bunar 1
-      if (r1) {
-        nivo1Label.textContent = online1
-          ? `Bunar 1: ${r1.value.toFixed(2)} m`
-          : `Bunar 1: ${r1.value.toFixed(2)} m (stari podaci)`;
-        grafikon1.data.labels.push(ts);
-        grafikon1.data.datasets[0].data.push(r1.value);
-        if (grafikon1.data.labels.length > 20) {
-          grafikon1.data.labels.shift();
-          grafikon1.data.datasets[0].data.shift();
-        }
-      }
-      grafikon1.update();
-
-      // Bunar 2
-      if (r2) {
-        nivo2Label.textContent = online2
-          ? `Bunar 2: ${r2.value.toFixed(2)} m`
-          : `Bunar 2: ${r2.value.toFixed(2)} m (stari podaci)`;
-        grafikon2.data.labels.push(ts);
-        grafikon2.data.datasets[0].data.push(r2.value);
-        if (grafikon2.data.labels.length > 20) {
-          grafikon2.data.labels.shift();
-          grafikon2.data.datasets[0].data.shift();
-        }
-      }
-      grafikon2.update();
-    }
-
-    // Start osvežavanja
-    setInterval(update, REFRESH_INTERVAL);
-    update();
+    testFetch();
   </script>
 </body>
 </html>
