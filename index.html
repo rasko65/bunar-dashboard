@@ -58,8 +58,9 @@
     const RESOURCE1        = "bunar1";
     const RESOURCE2        = "bunar2";
     const REFRESH_INTERVAL = 5000; // ms
+    const MAX_AGE          = 60000; // koliko dugo smatramo podatak "svežim" (1 minut)
 
-    // Referenca na DOM
+    // DOM reference
     const nivo1Label   = document.getElementById("nivo1");
     const nivo2Label   = document.getElementById("nivo2");
     const globalStatus = document.getElementById("globalStatus");
@@ -92,11 +93,7 @@
       }
     });
 
-    // Pamćenje poslednjih timestamp-ova
-    let lastCreatedAt1 = 0;
-    let lastCreatedAt2 = 0;
-
-    // Učita zadnji podatak sa Beebotte
+    // Učitaj zadnji podatak sa Beebotte
     async function fetchNivo(resource) {
       const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=1&cacheBust=${Date.now()}`;
       try {
@@ -122,56 +119,47 @@
         fetchNivo(RESOURCE2)
       ]);
       const ts = new Date().toLocaleTimeString();
+      const now = Date.now();
 
-      // Detekcija pristizanja novih podataka
-      const online1 = r1 && r1.createdAtMs > lastCreatedAt1;
-      const online2 = r2 && r2.createdAtMs > lastCreatedAt2;
+      const online1 = r1 && (now - r1.createdAtMs < MAX_AGE);
+      const online2 = r2 && (now - r2.createdAtMs < MAX_AGE);
 
-      // Ako je stigao novi, zabeleži timestamp
-      if (online1) lastCreatedAt1 = r1.createdAtMs;
-      if (online2) lastCreatedAt2 = r2.createdAtMs;
-
-      // Globalni status: crveno ako bar jedan bunar nema nov podatak
+      // Globalni status
       const anyOffline = !online1 || !online2;
       globalStatus.className = `status ${anyOffline ? "offline" : "online"}`;
       globalStatus.title     = anyOffline ? "Offline" : "Online";
 
       // Bunar 1
-      if (online1) {
-        nivo1Label.textContent = `Bunar 1: ${r1.value.toFixed(2)} m`;
+      if (r1) {
+        nivo1Label.textContent = online1
+          ? `Bunar 1: ${r1.value.toFixed(2)} m`
+          : `Bunar 1: ${r1.value.toFixed(2)} m (stari podaci)`;
         grafikon1.data.labels.push(ts);
         grafikon1.data.datasets[0].data.push(r1.value);
         if (grafikon1.data.labels.length > 20) {
           grafikon1.data.labels.shift();
           grafikon1.data.datasets[0].data.shift();
         }
-      } else {
-        nivo1Label.textContent = "Bunar 1: OFFLINE";
-        grafikon1.data.labels.length = 0;
-        grafikon1.data.datasets[0].data.length = 0;
       }
       grafikon1.update();
 
       // Bunar 2
-      if (online2) {
-        nivo2Label.textContent = `Bunar 2: ${r2.value.toFixed(2)} m`;
+      if (r2) {
+        nivo2Label.textContent = online2
+          ? `Bunar 2: ${r2.value.toFixed(2)} m`
+          : `Bunar 2: ${r2.value.toFixed(2)} m (stari podaci)`;
         grafikon2.data.labels.push(ts);
         grafikon2.data.datasets[0].data.push(r2.value);
         if (grafikon2.data.labels.length > 20) {
           grafikon2.data.labels.shift();
           grafikon2.data.datasets[0].data.shift();
         }
-      } else {
-        nivo2Label.textContent = "Bunar 2: OFFLINE";
-        grafikon2.data.labels.length = 0;
-        grafikon2.data.datasets[0].data.length = 0;
       }
       grafikon2.update();
     }
 
-    // Start periodicnog osvežavanja
+    // Start osvežavanja
     setInterval(update, REFRESH_INTERVAL);
-    // i pokreni odmah jednom
     update();
   </script>
 </body>
