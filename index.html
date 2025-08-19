@@ -1,51 +1,93 @@
 <!DOCTYPE html>
 <html lang="sr">
 <head>
-  <meta charset="UTF-8">
-  <title>Bunar Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bunar Monitoring</title>
   <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
-    #status { font-size: 1.5em; margin-top: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 400px;
+      margin: auto;
+    }
+    .status {
+      font-size: 1.5em;
+      margin: 10px 0;
+    }
+    .offline {
+      color: red;
+    }
+    .online {
+      color: green;
+    }
+    #debug {
+      margin-top: 20px;
+      font-size: 12px;
+      color: gray;
+      text-align: left;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
   </style>
 </head>
 <body>
-  <h1>Bunar Dashboard</h1>
-  <div id="status">🔄 Provera statusa...</div>
+  <div class="card">
+    <h2>Bunar Monitoring</h2>
+    <div class="status">
+      Nivo: <span id="nivo">--</span> m
+    </div>
+    <div class="status">
+      Poslednji podatak: <span id="timestamp">--</span>
+    </div>
+    <div class="status" id="signalStatus">Status: <span class="offline">Offline</span></div>
+  </div>
+
+  <div id="debug"></div>
 
   <script>
-    function checkDataAge(lastTimestamp) {
-      const now = new Date();
-      const last = new Date(lastTimestamp);
-      const diffMinutes = (now - last) / 1000 / 60;
+    const apiUrl = "https://api.beebotte.com/v1/data/read/bunar/nivo?limit=1";
+    const offlineThresholdMinutes = 10;
 
-      const statusEl = document.getElementById("status");
-      if (diffMinutes > 15) {
-        statusEl.textContent = "⚠️ Offline";
-        statusEl.style.color = "red";
-      } else {
-        statusEl.textContent = "✅ Online";
-        statusEl.style.color = "green";
-      }
-    }
-
-    // 🔗 Učitaj podatke sa Beebotte REST API-ja
-    fetch("https://api.beebotte.com/v1/history/nivoi_bunara/bunar1?limit=1", {
+    fetch(apiUrl, {
       headers: {
         "X-Auth-Token": "token_dlVQqzrALZ6DsGjF"
       }
     })
     .then(response => response.json())
     .then(data => {
-      if (data.length > 0) {
-        const lastTimestamp = data[0].timestamp;
-        checkDataAge(lastTimestamp);
+      document.getElementById("debug").textContent = JSON.stringify(data, null, 2);
+
+      const value = parseFloat(data[0]?.data?.value);
+      const timestampRaw = data[0]?.createdAt;
+      const timestamp = new Date(timestampRaw);
+      const now = new Date();
+      const minutesDiff = (now - timestamp) / 60000;
+
+      // Prikaz vrednosti
+      document.getElementById("nivo").textContent = isNaN(value) ? "--" : value.toFixed(2);
+      document.getElementById("timestamp").textContent = timestamp.toLocaleString();
+
+      // Status signala
+      const statusEl = document.getElementById("signalStatus");
+      if (isNaN(value) || minutesDiff > offlineThresholdMinutes) {
+        statusEl.innerHTML = 'Status: <span class="offline">Offline</span>';
       } else {
-        document.getElementById("status").textContent = "❌ Nema podataka";
+        statusEl.innerHTML = 'Status: <span class="online">Online</span>';
       }
     })
     .catch(error => {
-      console.error("Greška pri učitavanju:", error);
-      document.getElementById("status").textContent = "❌ Greška u komunikaciji";
+      console.error("Greška:", error);
+      document.getElementById("signalStatus").innerHTML = 'Status: <span class="offline">Greška u učitavanju</span>';
     });
   </script>
 </body>
