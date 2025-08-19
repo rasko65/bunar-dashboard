@@ -3,92 +3,137 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bunar Monitoring</title>
+  <title>Monitoring Bunara</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      margin: 0;
+      background: #eef;
       padding: 20px;
       text-align: center;
     }
     .card {
       background: white;
-      padding: 20px;
+      padding: 15px;
+      margin: 20px auto;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      max-width: 400px;
-      margin: auto;
+      max-width: 600px;
     }
     .status {
-      font-size: 1.5em;
+      font-size: 1.2em;
       margin: 10px 0;
     }
-    .offline {
-      color: red;
-    }
-    .online {
-      color: green;
-    }
-    #debug {
-      margin-top: 20px;
-      font-size: 12px;
-      color: gray;
-      text-align: left;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
+    .offline { color: red; }
+    .online { color: green; }
+    .alert { color: orange; font-weight: bold; }
+    canvas { max-width: 100%; }
+    .stats { font-size: 0.9em; color: #555; margin-top: 10px; }
   </style>
 </head>
 <body>
+  <h1>Monitoring Bunara</h1>
+
   <div class="card">
-    <h2>Bunar Monitoring</h2>
-    <div class="status">
-      Nivo: <span id="nivo">--</span> m
-    </div>
-    <div class="status">
-      Poslednji podatak: <span id="timestamp">--</span>
-    </div>
-    <div class="status" id="signalStatus">Status: <span class="offline">Offline</span></div>
+    <h2>Bunar 1</h2>
+    <div class="status">Nivo: <span id="nivo1">--</span> m</div>
+    <div class="status">Status: <span id="status1" class="offline">Offline</span></div>
+    <div class="status alert" id="alert1" style="display:none;">⚠️ Visok nivo!</div>
+    <div class="stats" id="stats1"></div>
+    <canvas id="chart1" height="200"></canvas>
   </div>
 
-  <div id="debug"></div>
+  <div class="card">
+    <h2>Bunar 2</h2>
+    <div class="status">Nivo: <span id="nivo2">--</span> m</div>
+    <div class="status">Status: <span id="status2" class="offline">Offline</span></div>
+    <div class="status alert" id="alert2" style="display:none;">⚠️ Visok nivo!</div>
+    <div class="stats" id="stats2"></div>
+    <canvas id="chart2" height="200"></canvas>
+  </div>
 
   <script>
-    const apiUrl = "https://api.beebotte.com/v1/data/read/bunar/nivo?limit=1";
-    const offlineThresholdMinutes = 10;
+    const token = "token_dlVQqzrALZ6DsGjF"; // ← zameni sa tvojim tokenom
+    const offlineThresholdMin = 10;
+    const criticalLevel = 2.5;
 
-    fetch(apiUrl, {
-      headers: {
-        "X-Auth-Token": "token_dlVQqzrALZ6DsGjF"
+    async function fetchData(channel, resource, nivoId, statusId, chartId, statsId, alertId) {
+      try {
+        const url = `https://api.beebotte.com/v1/data/read/${channel}/${resource}?limit=20`;
+        const response = await fetch(url, {
+          headers: { "X-Auth-Token": token }
+        });
+        const data = await response.json();
+
+        const values = data.map(d => parseFloat(d.data.value)).filter(v => !isNaN(v));
+        const timestamps = data.map(d => new Date(d.createdAt).toLocaleTimeString());
+
+        const latest = values[0];
+        const latestTime = new Date(data[0].createdAt);
+        const now = new Date();
+        const diffMin = (now - latestTime) / 60000;
+
+        // Prikaz nivoa
+        document.getElementById(nivoId).textContent = latest.toFixed(2);
+
+        // Status konekcije
+        const statusEl = document.getElementById(statusId);
+        if (diffMin > offlineThresholdMin || isNaN(latest)) {
+          statusEl.textContent = "Offline";
+          statusEl.className = "offline";
+        } else {
+          statusEl.textContent = "Online";
+          statusEl.className = "online";
+        }
+
+        // Vizuelni alarm
+        const alertEl = document.getElementById(alertId);
+        if (latest > criticalLevel) {
+          alertEl.style.display = "block";
+        } else {
+          alertEl.style.display = "none";
+        }
+
+        // Statistika
+        const avg = (values.reduce((a,b) => a + b, 0) / values.length).toFixed(2);
+        const min = Math.min(...values).toFixed(2);
+        const max = Math.max(...values).toFixed(2);
+        document.getElementById(statsId).textContent = `Prosek: ${avg} m | Min: ${min} m | Max: ${max} m`;
+
+        // Grafik
+        new Chart(document.getElementById(chartId), {
+          type: "line",
+          data: {
+            labels: timestamps.reverse(),
+            datasets: [{
+              label: "Nivo (m)",
+              data: values.reverse(),
+              borderColor: "#0077cc",
+              backgroundColor: "rgba(0,119,204,0.1)",
+              fill: true,
+              tension: 0.3
+            }]
+          },
+          options: {
+            scales: {
+              y: { beginAtZero: true }
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Greška:", error);
+        document.getElementById(statusId).textContent = "Greška";
+        document.getElementById(statusId).className = "offline";
       }
-    })
-    .then(response => response.json())
-    .then(data => {
-      document.getElementById("debug").textContent = JSON.stringify(data, null, 2);
+    }
 
-      const value = parseFloat(data[0]?.data?.value);
-      const timestampRaw = data[0]?.createdAt;
-      const timestamp = new Date(timestampRaw);
-      const now = new Date();
-      const minutesDiff = (now - timestamp) / 60000;
+    function refreshAll() {
+      fetchData("bunar1", "nivo", "nivo1", "status1", "chart1", "stats1", "alert1");
+      fetchData("bunar2", "nivo", "nivo2", "status2", "chart2", "stats2", "alert2");
+    }
 
-      // Prikaz vrednosti
-      document.getElementById("nivo").textContent = isNaN(value) ? "--" : value.toFixed(2);
-      document.getElementById("timestamp").textContent = timestamp.toLocaleString();
-
-      // Status signala
-      const statusEl = document.getElementById("signalStatus");
-      if (isNaN(value) || minutesDiff > offlineThresholdMinutes) {
-        statusEl.innerHTML = 'Status: <span class="offline">Offline</span>';
-      } else {
-        statusEl.innerHTML = 'Status: <span class="online">Online</span>';
-      }
-    })
-    .catch(error => {
-      console.error("Greška:", error);
-      document.getElementById("signalStatus").innerHTML = 'Status: <span class="offline">Greška u učitavanju</span>';
-    });
+    refreshAll();
+    setInterval(refreshAll, 30000); // osvežavanje na 30 sekundi
   </script>
 </body>
 </html>
