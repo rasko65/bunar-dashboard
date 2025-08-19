@@ -3,64 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monitoring Bunara</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #eef;
-      padding: 20px;
-      text-align: center;
-    }
-    .card {
-      background: white;
-      padding: 15px;
-      margin: 20px auto;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      max-width: 600px;
-    }
-    .status {
-      font-size: 1.2em;
-      margin: 10px 0;
-    }
-    .offline { color: red; }
-    .online { color: green; }
-    .alert { color: orange; font-weight: bold; }
-    canvas { max-width: 100%; }
-    .stats { font-size: 0.9em; color: #555; margin-top: 10px; }
-    @media (max-width: 600px) {
-      body { padding: 10px; }
-      .card { margin: 10px auto; }
-    }
-  </style>
+  <title>Bunar Monitoring</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+  <meta name="theme-color" content="#0077cc" />
 </head>
 <body>
-  <h1>Monitoring Bunara</h1>
+  <h1>Bunari</h1>
 
-  <div class="card">
+  <div class="bunar" id="bunar1">
     <h2>Bunar 1</h2>
-    <div class="status">Nivo: <span id="nivo1">--</span> m</div>
-    <div class="status">Status: <span id="status1" class="offline">Offline</span></div>
-    <div class="status alert" id="alert1" style="display:none;">⚠️ Visok nivo!</div>
-    <div class="stats" id="stats1"></div>
-    <canvas id="chart1" height="200"></canvas>
+    <p>Status: <span id="status1" class="loading">Učitavanje...</span></p>
+    <p>Nivo: <span id="nivo1">–</span> m</p>
+    <p>Statistika: <span id="stats1">–</span></p>
+    <canvas id="chart1" width="300" height="100"></canvas>
+    <p id="alert1" class="alert"></p>
   </div>
 
-  <div class="card">
+  <div class="bunar" id="bunar2">
     <h2>Bunar 2</h2>
-    <div class="status">Nivo: <span id="nivo2">--</span> m</div>
-    <div class="status">Status: <span id="status2" class="offline">Offline</span></div>
-    <div class="status alert" id="alert2" style="display:none;">⚠️ Visok nivo!</div>
-    <div class="stats" id="stats2"></div>
-    <canvas id="chart2" height="200"></canvas>
+    <p>Status: <span id="status2" class="loading">Učitavanje...</span></p>
+    <p>Nivo: <span id="nivo2">–</span> m</p>
+    <p>Statistika: <span id="stats2">–</span></p>
+    <canvas id="chart2" width="300" height="100"></canvas>
+    <p id="alert2" class="alert"></p>
   </div>
 
   <script>
     const token = "token_dlVQqzrALZ6DsGjF";
     const channel = "nivoi_bunara";
-    const offlineThresholdMin = 10;
-    const criticalLevel = 2.5;
 
     async function fetchData(resource, nivoId, statusId, chartId, statsId, alertId) {
       try {
@@ -68,77 +39,75 @@
         const response = await fetch(url, {
           headers: { "X-Auth-Token": token }
         });
+
         const data = await response.json();
+        console.log(`Odgovor za ${resource}:`, data);
 
-        if (!Array.isArray(data) || data.length === 0) {
-          throw new Error("Nema podataka");
+        if (!Array.isArray(data) || data.length === 0 || data[0].data === undefined) {
+          document.getElementById(statusId).textContent = "Nema podataka";
+          document.getElementById(statusId).className = "offline";
+          return;
         }
 
-        const values = data.map(d => parseFloat(d.data.value)).filter(v => !isNaN(v));
-        const timestamps = data.map(d => new Date(d.createdAt).toLocaleTimeString());
+        const vrednosti = data.map(d => parseFloat(d.data)).filter(v => !isNaN(v));
+        const poslednja = vrednosti[0];
 
-        const latest = values[0];
-        const latestTime = new Date(data[0].createdAt);
-        const now = new Date();
-        const diffMin = (now - latestTime) / 60000;
+        document.getElementById(nivoId).textContent = poslednja.toFixed(2);
+        document.getElementById(statusId).textContent = "Online";
+        document.getElementById(statusId).className = "online";
 
-        document.getElementById(nivoId).textContent = latest.toFixed(2);
+        // Statistika
+        const min = Math.min(...vrednosti);
+        const max = Math.max(...vrednosti);
+        const avg = (vrednosti.reduce((a, b) => a + b, 0) / vrednosti.length).toFixed(2);
+        document.getElementById(statsId).textContent = `Min: ${min}, Max: ${max}, Avg: ${avg}`;
 
-        const statusEl = document.getElementById(statusId);
-        if (diffMin > offlineThresholdMin || isNaN(latest)) {
-          statusEl.textContent = "Offline";
-          statusEl.className = "offline";
+        // Upozorenje
+        if (poslednja < 0.5) {
+          document.getElementById(alertId).textContent = "⚠️ Nizak nivo!";
         } else {
-          statusEl.textContent = "Online";
-          statusEl.className = "online";
+          document.getElementById(alertId).textContent = "";
         }
 
-        const alertEl = document.getElementById(alertId);
-        alertEl.style.display = latest > criticalLevel ? "block" : "none";
-
-        const avg = (values.reduce((a,b) => a + b, 0) / values.length).toFixed(2);
-        const min = Math.min(...values).toFixed(2);
-        const max = Math.max(...values).toFixed(2);
-        document.getElementById(statsId).textContent = `Prosek: ${avg} m | Min: ${min} m | Max: ${max} m`;
-
+        // Grafikon
         const ctx = document.getElementById(chartId).getContext("2d");
-        if (ctx.chart) ctx.chart.destroy(); // uništi prethodni grafikon ako postoji
-
-        ctx.chart = new Chart(ctx, {
+        new Chart(ctx, {
           type: "line",
           data: {
-            labels: timestamps.reverse(),
+            labels: vrednosti.map((_, i) => i + 1),
             datasets: [{
-              label: "Nivo (m)",
-              data: values.reverse(),
+              label: "Nivo",
+              data: vrednosti,
               borderColor: "#0077cc",
-              backgroundColor: "rgba(0,119,204,0.1)",
-              fill: true,
-              tension: 0.3
+              fill: false
             }]
           },
           options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            responsive: false,
             scales: {
               y: { beginAtZero: true }
             }
           }
         });
+
       } catch (error) {
-        console.error("Greška:", error);
+        console.error(`Greška za ${resource}:`, error);
         document.getElementById(statusId).textContent = "Greška";
         document.getElementById(statusId).className = "offline";
       }
     }
 
-    function refreshAll() {
-      fetchData("bunar1", "nivo1", "status1", "chart1", "stats1", "alert1");
-      fetchData("bunar2", "nivo2", "status2", "chart2", "stats2", "alert2");
-    }
+    fetchData("bunar1", "nivo1", "status1", "chart1", "stats1", "alert1");
+    fetchData("bunar2", "nivo2", "status2", "chart2", "stats2", "alert2");
+  </script>
 
-    refreshAll();
-    setInterval(refreshAll, 30000);
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js").then(() => {
+        console.log("Service Worker registrovan");
+      });
+    }
   </script>
 </body>
 </html>
