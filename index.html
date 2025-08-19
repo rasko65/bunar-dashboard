@@ -38,7 +38,12 @@
     .online { color: green; }
     .offline { color: red; }
     .alert { color: orange; font-weight: bold; margin-top: 10px; }
-    canvas { width: 100% !important; height: auto !important; }
+    canvas {
+      width: 100% !important;
+      height: 300px !important;
+      display: block;
+      margin-top: 10px;
+    }
     button {
       margin-top: 10px;
       padding: 8px 12px;
@@ -135,7 +140,9 @@
           document.getElementById(alertId).textContent = "";
         }
 
-        const ctx = document.getElementById(chartId).getContext("2d");
+        const canvas = document.getElementById(chartId);
+        canvas.height = 300;
+        const ctx = canvas.getContext("2d");
         if (ctx.chart) ctx.chart.destroy();
 
         ctx.chart = new Chart(ctx, {
@@ -205,5 +212,3 @@
       });
     }
   </script>
-</body>
-</html>
