@@ -29,6 +29,10 @@
     .alert { color: orange; font-weight: bold; }
     canvas { max-width: 100%; }
     .stats { font-size: 0.9em; color: #555; margin-top: 10px; }
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      .card { margin: 10px auto; }
+    }
   </style>
 </head>
 <body>
@@ -53,17 +57,22 @@
   </div>
 
   <script>
-    const token = "token_dlVQqzrALZ6DsGjF"; // ← zameni sa tvojim tokenom
+    const token = "token_dlVQqzrALZ6DsGjF";
+    const channel = "nivoi_bunara";
     const offlineThresholdMin = 10;
     const criticalLevel = 2.5;
 
-    async function fetchData(channel, resource, nivoId, statusId, chartId, statsId, alertId) {
+    async function fetchData(resource, nivoId, statusId, chartId, statsId, alertId) {
       try {
         const url = `https://api.beebotte.com/v1/data/read/${channel}/${resource}?limit=20`;
         const response = await fetch(url, {
           headers: { "X-Auth-Token": token }
         });
         const data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          throw new Error("Nema podataka");
+        }
 
         const values = data.map(d => parseFloat(d.data.value)).filter(v => !isNaN(v));
         const timestamps = data.map(d => new Date(d.createdAt).toLocaleTimeString());
@@ -73,10 +82,8 @@
         const now = new Date();
         const diffMin = (now - latestTime) / 60000;
 
-        // Prikaz nivoa
         document.getElementById(nivoId).textContent = latest.toFixed(2);
 
-        // Status konekcije
         const statusEl = document.getElementById(statusId);
         if (diffMin > offlineThresholdMin || isNaN(latest)) {
           statusEl.textContent = "Offline";
@@ -86,22 +93,18 @@
           statusEl.className = "online";
         }
 
-        // Vizuelni alarm
         const alertEl = document.getElementById(alertId);
-        if (latest > criticalLevel) {
-          alertEl.style.display = "block";
-        } else {
-          alertEl.style.display = "none";
-        }
+        alertEl.style.display = latest > criticalLevel ? "block" : "none";
 
-        // Statistika
         const avg = (values.reduce((a,b) => a + b, 0) / values.length).toFixed(2);
         const min = Math.min(...values).toFixed(2);
         const max = Math.max(...values).toFixed(2);
         document.getElementById(statsId).textContent = `Prosek: ${avg} m | Min: ${min} m | Max: ${max} m`;
 
-        // Grafik
-        new Chart(document.getElementById(chartId), {
+        const ctx = document.getElementById(chartId).getContext("2d");
+        if (ctx.chart) ctx.chart.destroy(); // uništi prethodni grafikon ako postoji
+
+        ctx.chart = new Chart(ctx, {
           type: "line",
           data: {
             labels: timestamps.reverse(),
@@ -115,6 +118,8 @@
             }]
           },
           options: {
+            responsive: true,
+            maintainAspectRatio: false,
             scales: {
               y: { beginAtZero: true }
             }
@@ -128,12 +133,12 @@
     }
 
     function refreshAll() {
-      fetchData("bunar1", "nivo", "nivo1", "status1", "chart1", "stats1", "alert1");
-      fetchData("bunar2", "nivo", "nivo2", "status2", "chart2", "stats2", "alert2");
+      fetchData("bunar1", "nivo1", "status1", "chart1", "stats1", "alert1");
+      fetchData("bunar2", "nivo2", "status2", "chart2", "stats2", "alert2");
     }
 
     refreshAll();
-    setInterval(refreshAll, 30000); // osvežavanje na 30 sekundi
+    setInterval(refreshAll, 30000);
   </script>
 </body>
 </html>
