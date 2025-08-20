@@ -1,7 +1,8 @@
 {
   "name": "Bunar Monitoring",
   "short_name": "Bunar",
-  "start_url": "index.html",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#eef",
   "theme_color": "#0077cc",
