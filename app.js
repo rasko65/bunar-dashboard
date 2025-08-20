@@ -1,13 +1,16 @@
-const API_URL = "https://api.beebotte.com/v1/data/read/bunari/nivo?limit=100";
-const API_TOKEN = "your_token_here"; // zameni sa pravim tokenom
+const TOKEN = "token_dlVQqzrALZ6DsGjF";
+const CHANNEL = "nivoi_bunara";
+const RESOURCES = ["bunar1", "bunar2"];
+const LIMIT = 100;
 
-let chart;
+let charts = {};
 
-async function fetchData() {
-  const headers = { "X-Auth-Token": API_TOKEN };
+async function fetchData(resource) {
+  const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=${LIMIT}`;
+  const headers = { "X-Auth-Token": TOKEN };
 
   try {
-    const response = await fetch(API_URL, { headers });
+    const response = await fetch(url, { headers });
     const rawData = await response.json();
 
     const formatted = rawData
@@ -17,24 +20,24 @@ async function fetchData() {
         y: Number(entry.data)
       }));
 
-    console.log("Beebotte podaci:", formatted);
+    console.log(`Podaci za ${resource}:`, formatted);
     return formatted;
   } catch (err) {
-    console.error("Greška:", err);
+    console.error(`Greška za ${resource}:`, err);
     return [];
   }
 }
 
-function renderChart(data) {
-  const ctx = document.getElementById("grafikon").getContext("2d");
+function renderChart(canvasId, data, label) {
+  const ctx = document.getElementById(canvasId).getContext("2d");
 
-  if (chart) chart.destroy();
+  if (charts[canvasId]) charts[canvasId].destroy();
 
-  chart = new Chart(ctx, {
+  charts[canvasId] = new Chart(ctx, {
     type: "line",
     data: {
       datasets: [{
-        label: "Nivo",
+        label: label,
         data: data,
         borderColor: "#00ffcc",
         backgroundColor: "rgba(0,255,204,0.1)",
@@ -65,21 +68,31 @@ function renderChart(data) {
 }
 
 async function refresh() {
-  const data = await fetchData();
-  renderChart(data);
+  const data1 = await fetchData("bunar1");
+  const data2 = await fetchData("bunar2");
+
+  renderChart("grafikon1", data1, "Bunar 1");
+  renderChart("grafikon2", data2, "Bunar 2");
 }
 
 function exportCSV() {
-  if (!chart || !chart.data.datasets[0].data.length) return;
+  let allRows = [];
 
-  const rows = chart.data.datasets[0].data.map(p => `${p.x.toISOString()},${p.y}`);
-  const csv = "timestamp,value\n" + rows.join("\n");
+  RESOURCES.forEach((res, i) => {
+    const chart = charts[`grafikon${i + 1}`];
+    if (!chart || !chart.data.datasets[0].data.length) return;
+
+    const rows = chart.data.datasets[0].data.map(p => `${res},${p.x.toISOString()},${p.y}`);
+    allRows = allRows.concat(rows);
+  });
+
+  const csv = "resource,timestamp,value\n" + allRows.join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
 
   const a = document.createElement("a");
   a.href = url;
-  a.download = "nivo.csv";
+  a.download = "nivoi.csv";
   a.click();
   URL.revokeObjectURL(url);
 }
