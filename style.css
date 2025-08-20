@@ -6,7 +6,7 @@ body {
 }
 
 .container {
-  max-width: 800px;
+  max-width: 900px;
   margin: auto;
   padding: 20px;
 }
@@ -14,10 +14,19 @@ body {
 canvas {
   background-color: #1e1e1e;
   border-radius: 8px;
+  margin-bottom: 40px;
 }
 
 .controls {
   margin-top: 20px;
   display: flex;
   justify-content: space-between;
+}
+
+select, button {
+  background-color: #222;
+  color: #fff;
+  border: 1px solid #444;
+  padding: 8px 12px;
+  border-radius: 4px;
 }
