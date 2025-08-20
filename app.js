@@ -1,6 +1,5 @@
-
-const API_URL = "https://api.beebotte.com/v1/data/read/your_channel/your_resource?limit=100";
-const API_TOKEN = "your_token_here";
+const API_URL = "https://api.beebotte.com/v1/data/read/bunari/nivo?limit=100";
+const API_TOKEN = "your_token_here"; // zameni sa pravim tokenom
 
 let chart;
 
@@ -87,8 +86,8 @@ function exportCSV() {
 
 function updateRange() {
   const range = document.getElementById("rangeSelector").value;
-  // Ovde možeš dodati filtriranje po vremenskom opsegu
   console.log("Odabrani opseg:", range);
+  // Ovde možeš dodati filtriranje po vremenskom opsegu
 }
 
 // ⏱ Automatski refresh na 30s
