@@ -4,6 +4,7 @@ const RESOURCES = ["bunar1", "bunar2"];
 const LIMIT = 100;
 
 let charts = {};
+let warnings = {};
 
 async function fetchData(resource) {
   const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=${LIMIT}`;
@@ -32,6 +33,12 @@ function renderChart(canvasId, data, label) {
   const ctx = document.getElementById(canvasId).getContext("2d");
 
   if (charts[canvasId]) charts[canvasId].destroy();
+
+  if (data.length === 0) {
+    showWarning(canvasId, `⚠️ Nema dostupnih podataka za ${label}`);
+  } else {
+    hideWarning(canvasId);
+  }
 
   charts[canvasId] = new Chart(ctx, {
     type: "line",
@@ -65,6 +72,24 @@ function renderChart(canvasId, data, label) {
       }
     }
   });
+}
+
+function showWarning(canvasId, message) {
+  let warning = warnings[canvasId];
+  if (!warning) {
+    warning = document.createElement("div");
+    warning.className = "warning";
+    warning.style.color = "orange";
+    warning.style.marginTop = "8px";
+    document.getElementById(canvasId).parentElement.appendChild(warning);
+    warnings[canvasId] = warning;
+  }
+  warning.textContent = message;
+}
+
+function hideWarning(canvasId) {
+  const warning = warnings[canvasId];
+  if (warning) warning.textContent = "";
 }
 
 async function refresh() {
