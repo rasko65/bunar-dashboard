@@ -1,5 +1,5 @@
-const CHANNEL = "tvoj_kanal";
-const TOKEN = "tvoj_token";
+const CHANNEL = "nivoi_bunara";
+const TOKEN = "token_dlVQqzrALZ6DsGjF";
 const LIMIT = 300;
 
 let selectedRange = "1h";
