@@ -2,23 +2,6 @@ const TOKEN = "token_dlVQqzrALZ6DsGjF";
 const CHANNEL = "nivoi_bunara";
 const RESOURCES = ["bunar1", "bunar2"];
 const LIMIT = 100;
-// Test: prikaz sirovih podataka u konzoli
-async function testBeebotte() {
-  const headers = { "X-Auth-Token": TOKEN };
-
-  for (const resource of RESOURCES) {
-    const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=10`;
-    try {
-      const response = await fetch(url, { headers });
-      const rawData = await response.json();
-      console.log(`📦 ${resource}:`, rawData);
-    } catch (err) {
-      console.error(`❌ Greška za ${resource}:`, err);
-    }
-  }
-}
-
-testBeebotte(); // 👈 poziv funkcije
 
 let charts = {};
 let warnings = {};
@@ -33,10 +16,9 @@ async function fetchData(resource) {
 
     const formatted = rawData
       .filter(entry => entry.data !== null && !isNaN(Number(entry.data)))
-.map(entry => ({
-  x: new Date(entry.ts),
-  y: Number(entry.data)
-}))
+      .map(entry => ({
+        x: new Date(entry.ts), // ✅ koristi ts umesto timestamp
+        y: Number(entry.data)
       }));
 
     return formatted;
@@ -56,6 +38,9 @@ function renderChart(canvasId, data, label) {
   } else {
     hideWarning(canvasId);
   }
+
+  const maxY = Math.max(...data.map(p => p.y));
+  const suggestedMax = maxY === 0 ? 1 : maxY * 1.2;
 
   charts[canvasId] = new Chart(ctx, {
     type: "line",
@@ -81,7 +66,7 @@ function renderChart(canvasId, data, label) {
         },
         y: {
           beginAtZero: true,
-          suggestedMax: 10, // 👈 Dodato da linija ne bude zalepljena za dno
+          suggestedMax: suggestedMax, // ✅ dinamičko skaliranje
           ticks: { color: "#ccc" }
         }
       },
