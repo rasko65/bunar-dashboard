@@ -1,119 +1,96 @@
-const ctx1 = document.getElementById('chart1').getContext('2d');
-const ctx2 = document.getElementById('chart2').getContext('2d');
-const rangeSelector = document.getElementById('range');
-const exportBtn = document.getElementById('export-csv');
-const refreshTimer = document.getElementById('refresh-timer');
-const trend1 = document.getElementById('trend1');
-const trend2 = document.getElementById('trend2');
 
-let chart1, chart2;
-let currentRange = '1h';
-let refreshInterval = 30; // seconds
+const API_URL = "https://api.beebotte.com/v1/data/read/your_channel/your_resource?limit=100";
+const API_TOKEN = "your_token_here";
 
-function generateMockData(range) {
-  const points = range === '1h' ? 60 : range === '24h' ? 24 : 7;
-  const labels = [];
-  const data1 = [];
-  const data2 = [];
+let chart;
 
-  for (let i = 0; i < points; i++) {
-    labels.push(`${i}`);
-    data1.push(Math.random() * 100);
-    data2.push(Math.random() * 50 + 50);
+async function fetchData() {
+  const headers = { "X-Auth-Token": API_TOKEN };
+
+  try {
+    const response = await fetch(API_URL, { headers });
+    const rawData = await response.json();
+
+    const formatted = rawData
+      .filter(entry => entry.data !== null)
+      .map(entry => ({
+        x: new Date(entry.timestamp),
+        y: Number(entry.data)
+      }));
+
+    console.log("Beebotte podaci:", formatted);
+    return formatted;
+  } catch (err) {
+    console.error("Greška:", err);
+    return [];
   }
-
-  return { labels, data1, data2 };
 }
 
-function renderCharts() {
-  const { labels, data1, data2 } = generateMockData(currentRange);
+function renderChart(data) {
+  const ctx = document.getElementById("grafikon").getContext("2d");
 
-  if (chart1) chart1.destroy();
-  if (chart2) chart2.destroy();
+  if (chart) chart.destroy();
 
-  chart1 = new Chart(ctx1, {
-    type: 'line',
+  chart = new Chart(ctx, {
+    type: "line",
     data: {
-      labels,
       datasets: [{
-        label: 'Sensor A',
-        data: data1,
-        borderColor: '#4fc3f7',
-        backgroundColor: 'rgba(79,195,247,0.2)',
-        fill: true,
-        tension: 0.3
+        label: "Nivo",
+        data: data,
+        borderColor: "#00ffcc",
+        backgroundColor: "rgba(0,255,204,0.1)",
+        tension: 0.3,
+        pointRadius: 2
       }]
     },
     options: {
       scales: {
-        x: { reverse: false },
-        y: { beginAtZero: true }
+        x: {
+          type: "time",
+          time: {
+            unit: "minute",
+            tooltipFormat: "HH:mm:ss"
+          },
+          ticks: { color: "#ccc" }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: "#ccc" }
+        }
+      },
+      plugins: {
+        legend: { labels: { color: "#ccc" } }
       }
     }
   });
-
-  chart2 = new Chart(ctx2, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Sensor B',
-        data: data2,
-        borderColor: '#81c784',
-        backgroundColor: 'rgba(129,199,132,0.2)',
-        fill: true,
-        tension: 0.3
-      }]
-    },
-    options: {
-      scales: {
-        x: { reverse: false },
-        y: { beginAtZero: true }
-      }
-    }
-  });
-
-  updateTrends(data1, data2);
 }
 
-function updateTrends(data1, data2) {
-  const trendA = data1[data1.length - 1] - data1[0];
-  const trendB = data2[data2.length - 1] - data2[0];
-
-  trend1.textContent = `Trend: ${trendA.toFixed(2)} ${trendA >= 0 ? '📈' : '📉'}`;
-  trend2.textContent = `Trend: ${trendB.toFixed(2)} ${trendB >= 0 ? '📈' : '📉'}`;
+async function refresh() {
+  const data = await fetchData();
+  renderChart(data);
 }
 
 function exportCSV() {
-  const rows = [['Time', 'Sensor A', 'Sensor B']];
-  chart1.data.labels.forEach((label, i) => {
-    rows.push([label, chart1.data.datasets[0].data[i], chart2.data.datasets[0].data[i]]);
-  });
+  if (!chart || !chart.data.datasets[0].data.length) return;
 
-  const csvContent = rows.map(e => e.join(',')).join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'bunar-data.csv';
-  link.click();
+  const rows = chart.data.datasets[0].data.map(p => `${p.x.toISOString()},${p.y}`);
+  const csv = "timestamp,value\n" + rows.join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "nivo.csv";
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
-rangeSelector.addEventListener('change', () => {
-  currentRange = rangeSelector.value;
-  renderCharts();
-});
-
-exportBtn.addEventListener('click', exportCSV);
-
-function startAutoRefresh() {
-  setInterval(() => {
-    renderCharts();
-  }, refreshInterval * 1000);
+function updateRange() {
+  const range = document.getElementById("rangeSelector").value;
+  // Ovde možeš dodati filtriranje po vremenskom opsegu
+  console.log("Odabrani opseg:", range);
 }
 
-document.getElementById('toggle-theme').addEventListener('click', () => {
-  document.body.classList.toggle('dark');
-});
-
-renderCharts();
-startAutoRefresh();
+// ⏱ Automatski refresh na 30s
+setInterval(refresh, 30000);
+refresh();
