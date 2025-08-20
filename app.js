@@ -15,13 +15,12 @@ async function fetchData(resource) {
     const rawData = await response.json();
 
     const formatted = rawData
-      .filter(entry => entry.data !== null)
+      .filter(entry => entry.data !== null && !isNaN(Number(entry.data)))
       .map(entry => ({
         x: new Date(entry.timestamp),
         y: Number(entry.data)
       }));
 
-    console.log(`Podaci za ${resource}:`, formatted);
     return formatted;
   } catch (err) {
     console.error(`Greška za ${resource}:`, err);
@@ -64,10 +63,16 @@ function renderChart(canvasId, data, label) {
         },
         y: {
           beginAtZero: true,
+          suggestedMax: 10, // 👈 Dodato da linija ne bude zalepljena za dno
           ticks: { color: "#ccc" }
         }
       },
       plugins: {
+        tooltip: {
+          callbacks: {
+            label: ctx => `Vrednost: ${ctx.parsed.y}`
+          }
+        },
         legend: { labels: { color: "#ccc" } }
       }
     }
@@ -128,6 +133,5 @@ function updateRange() {
   // Ovde možeš dodati filtriranje po vremenskom opsegu
 }
 
-// ⏱ Automatski refresh na 30s
 setInterval(refresh, 30000);
 refresh();
