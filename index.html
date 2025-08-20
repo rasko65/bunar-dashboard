@@ -4,13 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IoT Dashboard</title>
-  <link rel="stylesheet" href="style.css" />
+
+  <!-- Chart.js + adapter za vremensku osu -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
+
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="container">
     <h1>📡 Monitoring nivoa</h1>
-    <canvas id="grafikon"></canvas>
+
+    <h2>Bunar 1</h2>
+    <canvas id="grafikon1"></canvas>
+
+    <h2>Bunar 2</h2>
+    <canvas id="grafikon2"></canvas>
+
     <div class="controls">
       <button onclick="exportCSV()">📤 Export CSV</button>
       <select id="rangeSelector" onchange="updateRange()">
@@ -20,6 +31,7 @@
       </select>
     </div>
   </div>
+
   <script src="app.js"></script>
 </body>
 </html>
