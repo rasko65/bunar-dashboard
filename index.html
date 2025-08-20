@@ -1,187 +1,48 @@
 <!DOCTYPE html>
-<html lang="sr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bunar Monitoring</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      background: #eef;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-    }
-    .bunar {
-      background: white;
-      padding: 15px;
-      margin: 20px auto;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      max-width: 500px;
-    }
-    canvas {
-      width: 100%;
-      height: 300px;
-      display: block;
-      margin-top: 10px;
-    }
-    .status {
-      font-size: 1.1em;
-      margin: 8px 0;
-    }
-    .online { color: green; }
-    .offline { color: red; }
-    .alert { color: orange; font-weight: bold; margin-top: 10px; }
-    button {
-      margin-top: 10px;
-      padding: 8px 12px;
-      font-size: 1em;
-      border: none;
-      border-radius: 6px;
-      background-color: #0077cc;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #005fa3;
-    }
-    @media (prefers-color-scheme: dark) {
-      body { background: #121212; color: #eee; }
-      .bunar { background: #1e1e1e; }
-      .online { color: #4caf50; }
-      .offline { color: #f44336; }
-      .alert { color: #ff9800; }
-    }
-    @media (max-width: 600px) {
-      body { padding: 10px; }
-      .bunar { margin: 10px auto; padding: 12px; }
-    }
-  </style>
+  <title>Bunar Dashboard</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>Monitoring Bunara</h1>
+  <header>
+    <h1>Bunar Dashboard</h1>
+    <button id="toggle-theme">🌙</button>
+  </header>
 
-  <div class="bunar" id="bunar1">
-    <h2>Bunar 1</h2>
-    <p class="status">Status: <span id="status1">Učitavanje...</span></p>
-    <p class="status">Nivo: <span id="nivo1">–</span> m</p>
-    <p class="status">Statistika: <span id="stats1">–</span></p>
-    <canvas id="chart1" height="300"></canvas>
-    <p id="alert1" class="alert"></p>
-    <button onclick="exportCSV('bunar1')">📤 Export CSV</button>
-  </div>
+  <section class="controls">
+    <label for="range">Opseg:</label>
+    <select id="range">
+      <option value="1h">1h</option>
+      <option value="24h">24h</option>
+      <option value="7d">7d</option>
+    </select>
+    <button id="export-csv">📥 Export CSV</button>
+  </section>
 
-  <div class="bunar" id="bunar2">
-    <h2>Bunar 2</h2>
-    <p class="status">Status: <span id="status2">Učitavanje...</span></p>
-    <p class="status">Nivo: <span id="nivo2">–</span> m</p>
-    <p class="status">Statistika: <span id="stats2">–</span></p>
-    <canvas id="chart2" height="300"></canvas>
-    <p id="alert2" class="alert"></p>
-    <button onclick="exportCSV('bunar2')">📤 Export CSV</button>
-  </div>
+  <section class="charts">
+    <div class="chart-container">
+      <canvas id="chart1"></canvas>
+      <div id="trend1" class="trend-indicator"></div>
+    </div>
+    <div class="chart-container">
+      <canvas id="chart2"></canvas>
+      <div id="trend2" class="trend-indicator"></div>
+    </div>
+  </section>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <footer>
+    <p>Auto-refresh: <span id="refresh-timer">30s</span></p>
+  </footer>
+
+  <script src="app.js"></script>
   <script>
-    const token = "token_dlVQqzrALZ6DsGjF";
-    const channel = "nivoi_bunara";
-
-    async function fetchData(resource, nivoId, statusId, chartId, statsId, alertId, yMax) {
-      try {
-        const url = `https://api.beebotte.com/v1/data/read/${channel}/${resource}?limit=100`;
-        const response = await fetch(url, {
-          headers: { "X-Auth-Token": token }
-        });
-
-        const data = await response.json();
-        const now = Date.now();
-        const vrednosti = [];
-        const vremena = [];
-
-        for (let d of data) {
-          const t = new Date(d.ts);
-          if (now - t.getTime() <= 3600000) {
-            const v = parseFloat(d.data);
-            if (!isNaN(v)) {
-              vrednosti.push(v);
-              vremena.push(t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-            }
-          }
-        }
-
-        if (vrednosti.length === 0) {
-          document.getElementById(statusId).textContent = "Nema podataka u poslednjem satu";
-          document.getElementById(statusId).className = "offline";
-          return;
-        }
-
-        const poslednja = vrednosti[vrednosti.length - 1];
-        document.getElementById(nivoId).textContent = poslednja.toFixed(2);
-        document.getElementById(statusId).textContent = "Online";
-        document.getElementById(statusId).className = "online";
-
-        const min = Math.min(...vrednosti);
-        const max = Math.max(...vrednosti);
-        const avg = (vrednosti.reduce((a, b) => a + b, 0) / vrednosti.length).toFixed(2);
-        document.getElementById(statsId).textContent = `Min: ${min}, Max: ${max}, Avg: ${avg}`;
-
-        document.getElementById(alertId).textContent = poslednja < 0.5 ? "⚠️ Nizak nivo!" : "";
-
-        const ctx = document.getElementById(chartId).getContext("2d");
-        if (ctx.chart) ctx.chart.destroy();
-
-        ctx.chart = new Chart(ctx, {
-          type: "line",
-          data: {
-            labels: vremena,
-            datasets: [{
-              label: "Nivo (m)",
-              data: vrednosti,
-              borderColor: "#0077cc",
-              backgroundColor: "rgba(0,119,204,0.1)",
-              fill: true,
-              tension: 0.3
-            }]
-          },
-          options: {
-            responsive: true,
-            scales: {
-              x: { title: { display: true, text: "Vreme" } },
-              y: { beginAtZero: true, max: yMax, title: { display: true, text: "Nivo (m)" } }
-            }
-          }
-        });
-
-      } catch (error) {
-        console.error(`Greška za ${resource}:`, error);
-        document.getElementById(statusId).textContent = "Greška";
-        document.getElementById(statusId).className = "offline";
-      }
-    }
-
-    fetchData("bunar1", "nivo1", "status1", "chart1", "stats1", "alert1", 10);
-    fetchData("bunar2", "nivo2", "status2", "chart2", "stats2", "alert2", 4);
-
-    function exportCSV(resource) {
-      const url = `https://api.beebotte.com/v1/data/read/${channel}/${resource}?limit=100`;
-      fetch(url, {
-        headers: { "X-Auth-Token": token }
-      })
-      .then(res => res.json())
-      .then(data => {
-        const rows = data.map(d => {
-          const t = new Date(d.ts).toISOString();
-          return `${t},${d.data}`;
-        });
-        const csv = "timestamp,value\n" + rows.join("\n");
-        const blob = new Blob([csv], { type: "text/csv" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `${resource}.csv`;
-        link.click();
-      });
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
     }
   </script>
 </body>
