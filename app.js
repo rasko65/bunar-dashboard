@@ -1,12 +1,21 @@
-const TOKEN = "token_dlVQqzrALZ6DsGjF";
-const CHANNEL = "nivoi_bunara";
-const RESOURCES = ["bunar1", "bunar2"];
-const LIMIT = 100;
+const CHANNEL = "tvoj_kanal";
+const TOKEN = "tvoj_token";
+const LIMIT = 200;
 
-let charts = {};
-let warnings = {};
+let selectedRange = "1h";
 
-async function fetchData(resource) {
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("rangeSelector").addEventListener("change", updateRange);
+  refresh();
+  setInterval(refresh, 30000);
+});
+
+function updateRange() {
+  selectedRange = document.getElementById("rangeSelector").value;
+  refresh();
+}
+
+async function fetchData(resource, range = "1h") {
   const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=${LIMIT}`;
   const headers = { "X-Auth-Token": TOKEN };
 
@@ -14,44 +23,50 @@ async function fetchData(resource) {
     const response = await fetch(url, { headers });
     const rawData = await response.json();
 
-    const formatted = rawData
+    const now = Date.now();
+    const rangeMs = {
+      "1h": 60 * 60 * 1000,
+      "24h": 24 * 60 * 60 * 1000,
+      "7d": 7 * 24 * 60 * 60 * 1000
+    }[range];
+
+    const filtered = rawData
       .filter(entry => entry.data !== null && !isNaN(Number(entry.data)))
+      .filter(entry => now - entry.ts <= rangeMs)
       .map(entry => ({
-        x: new Date(entry.ts), // ✅ koristi ts umesto timestamp
+        x: new Date(entry.ts),
         y: Number(entry.data)
       }));
 
-    return formatted;
+    return filtered;
   } catch (err) {
     console.error(`Greška za ${resource}:`, err);
     return [];
   }
 }
 
+async function refresh() {
+  const data1 = await fetchData("bunar1", selectedRange);
+  const data2 = await fetchData("bunar2", selectedRange);
+
+  renderChart("grafikon1", data1, "Bunar 1");
+  renderChart("grafikon2", data2, "Bunar 2");
+  updateTrend("trend1", data1);
+  updateTrend("trend2", data2);
+}
+
 function renderChart(canvasId, data, label) {
   const ctx = document.getElementById(canvasId).getContext("2d");
-
-  if (charts[canvasId]) charts[canvasId].destroy();
-
-  if (data.length === 0) {
-    showWarning(canvasId, `⚠️ Nema dostupnih podataka za ${label}`);
-  } else {
-    hideWarning(canvasId);
-  }
-
-  const maxY = Math.max(...data.map(p => p.y));
-  const suggestedMax = maxY === 0 ? 1 : maxY * 1.2;
-
-  charts[canvasId] = new Chart(ctx, {
+  new Chart(ctx, {
     type: "line",
     data: {
       datasets: [{
-        label: label,
-        data: data,
-        borderColor: "#00ffcc",
-        backgroundColor: "rgba(0,255,204,0.1)",
-        tension: 0.3,
-        pointRadius: 2
+        label,
+        data,
+        borderColor: "#00bcd4",
+        backgroundColor: "rgba(0,188,212,0.2)",
+        fill: true,
+        tension: 0.3
       }]
     },
     options: {
@@ -60,81 +75,44 @@ function renderChart(canvasId, data, label) {
           type: "time",
           time: {
             unit: "minute",
-            tooltipFormat: "HH:mm:ss"
+            tooltipFormat: "HH:mm"
           },
-          ticks: { color: "#ccc" }
+          title: {
+            display: true,
+            text: "Vreme"
+          }
         },
         y: {
-          beginAtZero: true,
-          suggestedMax: suggestedMax, // ✅ dinamičko skaliranje
-          ticks: { color: "#ccc" }
+          title: {
+            display: true,
+            text: "Vrednost"
+          }
         }
       },
       plugins: {
-        tooltip: {
-          callbacks: {
-            label: ctx => `Vrednost: ${ctx.parsed.y}`
-          }
-        },
-        legend: { labels: { color: "#ccc" } }
+        legend: { display: false }
       }
     }
   });
 }
 
-function showWarning(canvasId, message) {
-  let warning = warnings[canvasId];
-  if (!warning) {
-    warning = document.createElement("div");
-    warning.className = "warning";
-    warning.style.color = "orange";
-    warning.style.marginTop = "8px";
-    document.getElementById(canvasId).parentElement.appendChild(warning);
-    warnings[canvasId] = warning;
+function updateTrend(elementId, data) {
+  const el = document.getElementById(elementId);
+  if (data.length < 2) {
+    el.textContent = "N/A";
+    return;
   }
-  warning.textContent = message;
+  const delta = data[data.length - 1].y - data[0].y;
+  const trend = delta > 0 ? "📈 +" : delta < 0 ? "📉 " : "➖ ";
+  el.textContent = `${trend}${delta.toFixed(2)}`;
 }
 
-function hideWarning(canvasId) {
-  const warning = warnings[canvasId];
-  if (warning) warning.textContent = "";
-}
-
-async function refresh() {
-  const data1 = await fetchData("bunar1");
-  const data2 = await fetchData("bunar2");
-
-  renderChart("grafikon1", data1, "Bunar 1");
-  renderChart("grafikon2", data2, "Bunar 2");
-}
-
-function exportCSV() {
-  let allRows = [];
-
-  RESOURCES.forEach((res, i) => {
-    const chart = charts[`grafikon${i + 1}`];
-    if (!chart || !chart.data.datasets[0].data.length) return;
-
-    const rows = chart.data.datasets[0].data.map(p => `${res},${p.x.toISOString()},${p.y}`);
-    allRows = allRows.concat(rows);
-  });
-
-  const csv = "resource,timestamp,value\n" + allRows.join("\n");
+function exportCSV(data, filename) {
+  const rows = data.map(d => `${d.x.toISOString()},${d.y}`);
+  const csv = "timestamp,value\n" + rows.join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "nivoi.csv";
-  a.click();
-  URL.revokeObjectURL(url);
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
 }
-
-function updateRange() {
-  const range = document.getElementById("rangeSelector").value;
-  console.log("Odabrani opseg:", range);
-  // Ovde možeš dodati filtriranje po vremenskom opsegu
-}
-
-setInterval(refresh, 30000);
-refresh();
