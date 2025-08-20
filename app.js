@@ -2,6 +2,23 @@ const TOKEN = "token_dlVQqzrALZ6DsGjF";
 const CHANNEL = "nivoi_bunara";
 const RESOURCES = ["bunar1", "bunar2"];
 const LIMIT = 100;
+// Test: prikaz sirovih podataka u konzoli
+async function testBeebotte() {
+  const headers = { "X-Auth-Token": TOKEN };
+
+  for (const resource of RESOURCES) {
+    const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=10`;
+    try {
+      const response = await fetch(url, { headers });
+      const rawData = await response.json();
+      console.log(`📦 ${resource}:`, rawData);
+    } catch (err) {
+      console.error(`❌ Greška za ${resource}:`, err);
+    }
+  }
+}
+
+testBeebotte(); // 👈 poziv funkcije
 
 let charts = {};
 let warnings = {};
