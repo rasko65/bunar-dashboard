@@ -33,9 +33,10 @@ async function fetchData(resource) {
 
     const formatted = rawData
       .filter(entry => entry.data !== null && !isNaN(Number(entry.data)))
-      .map(entry => ({
-        x: new Date(entry.timestamp),
-        y: Number(entry.data)
+.map(entry => ({
+  x: new Date(entry.ts),
+  y: Number(entry.data)
+}))
       }));
 
     return formatted;
