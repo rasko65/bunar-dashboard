@@ -1,49 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bunar Dashboard</title>
-  <link rel="manifest" href="manifest.json" />
+  <title>IoT Dashboard</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="dark">
-  <header>
-    <h1>Bunar Dashboard</h1>
-    <button id="toggle-theme">🌙</button>
-  </header>
-
-  <section class="controls">
-    <label for="range">Opseg:</label>
-    <select id="range">
-      <option value="1h">1h</option>
-      <option value="24h">24h</option>
-      <option value="7d">7d</option>
-    </select>
-    <button id="export-csv">📥 Export CSV</button>
-  </section>
-
-  <section class="charts">
-    <div class="chart-container">
-      <canvas id="chart1"></canvas>
-      <div id="trend1" class="trend-indicator"></div>
+<body>
+  <div class="container">
+    <h1>📡 Monitoring nivoa</h1>
+    <canvas id="grafikon"></canvas>
+    <div class="controls">
+      <button onclick="exportCSV()">📤 Export CSV</button>
+      <select id="rangeSelector" onchange="updateRange()">
+        <option value="1h">1h</option>
+        <option value="24h">24h</option>
+        <option value="7d">7d</option>
+      </select>
     </div>
-    <div class="chart-container">
-      <canvas id="chart2"></canvas>
-      <div id="trend2" class="trend-indicator"></div>
-    </div>
-  </section>
-
-  <footer>
-    <p>Auto-refresh: <span id="refresh-timer">30s</span></p>
-  </footer>
-
+  </div>
   <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
-    }
-  </script>
 </body>
 </html>
