@@ -4,34 +4,97 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IoT Dashboard</title>
-
-  <!-- Chart.js + adapter za vremensku osu -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/luxon"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
-
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    header {
+      padding: 1rem;
+      text-align: center;
+      background-color: #1f1f1f;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      padding: 1rem;
+      max-width: 900px;
+      margin: auto;
+    }
+    .card {
+      background-color: #1e1e1e;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    canvas {
+      width: 100% !important;
+      height: 300px !important;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    select, button {
+      padding: 0.5rem;
+      font-size: 1rem;
+      background-color: #2c2c2c;
+      color: #e0e0e0;
+      border: none;
+      border-radius: 4px;
+    }
+    .trend {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    @media (max-width: 600px) {
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
 </head>
 <body>
+  <header>🌡️ IoT Monitoring Dashboard</header>
   <div class="container">
-    <h1>📡 Monitoring nivoa</h1>
-
-    <h2>Bunar 1</h2>
-    <canvas id="grafikon1"></canvas>
-
-    <h2>Bunar 2</h2>
-    <canvas id="grafikon2"></canvas>
-
     <div class="controls">
-      <button onclick="exportCSV()">📤 Export CSV</button>
-      <select id="rangeSelector" onchange="updateRange()">
+      <label for="rangeSelector">Opseg:</label>
+      <select id="rangeSelector">
         <option value="1h">1h</option>
         <option value="24h">24h</option>
         <option value="7d">7d</option>
       </select>
     </div>
+
+    <div class="card">
+      <div class="controls">
+        <span class="trend" id="trend1">Trend 1</span>
+        <button onclick="exportCSV(window.lastData1, 'bunar1.csv')">📤 Export CSV</button>
+      </div>
+      <canvas id="grafikon1"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="controls">
+        <span class="trend" id="trend2">Trend 2</span>
+        <button onclick="exportCSV(window.lastData2, 'bunar2.csv')">📤 Export CSV</button>
+      </div>
+      <canvas id="grafikon2"></canvas>
+    </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
