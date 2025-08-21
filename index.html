@@ -59,6 +59,12 @@
       font-size: 1.2rem;
       font-weight: bold;
     }
+    .vrednost {
+      font-size: 2em;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 1rem;
+    }
     @media (max-width: 600px) {
       .controls {
         flex-direction: column;
@@ -85,6 +91,7 @@
         <button onclick="exportCSV(window.lastData1, 'bunar1.csv')">📤 Export CSV</button>
       </div>
       <canvas id="grafikon1"></canvas>
+      <div id="vrednost1" class="vrednost">Trenutno: N/A</div>
     </div>
 
     <div class="card">
@@ -93,6 +100,7 @@
         <button onclick="exportCSV(window.lastData2, 'bunar2.csv')">📤 Export CSV</button>
       </div>
       <canvas id="grafikon2"></canvas>
+      <div id="vrednost2" class="vrednost">Trenutno: N/A</div>
     </div>
   </div>
 
