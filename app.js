@@ -151,5 +151,5 @@ function exportBoth() {
 
   const timestamps = new Set([
     ...data1.map(d => d.x.toISOString()),
-    ...data2.map(d => d.x.toISOString
+    ...data2.map(d => d.x.toISOString)
 
