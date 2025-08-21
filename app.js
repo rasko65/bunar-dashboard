@@ -8,6 +8,13 @@ async function fetchLastValue(channel, resource, token) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`❌ API greška (${response.status}):`, errorText);
+
+      const errorBox = document.getElementById('errorBox');
+      if (errorBox) {
+        errorBox.textContent = `Greška: ${response.status} – ${errorText}`;
+        errorBox.style.display = 'block';
+      }
+
       return null;
     }
 
@@ -36,6 +43,4 @@ async function initDashboard() {
 
 initDashboard();
 setInterval(initDashboard, 60000);
-
-
 
