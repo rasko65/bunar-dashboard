@@ -1,53 +1,80 @@
-const TOKEN = "token_dlVQqzrALZ6DsGjF"; // zameni sa pravim tokenom
-const CHANNEL = "nivoi_bunara";  // zameni sa tačnim imenom kanala
+async function fetchData(resource) {
+  const response = await fetch(`https://api.beebotte.com/v1/data/read/${resource}?limit=50`);
+  const data = await response.json();
+  return data.map(entry => ({
+    time: new Date(entry.timestamp).toLocaleTimeString("sr-RS"),
+    value: parseFloat(entry.data)
+  }));
+}
 
-function fetchAndRender(resource, canvasId, label) {
-  const API_URL = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=50`;
+function renderChart(canvasId, label, dataPoints, yMax, minLine = null) {
+  const ctx = document.getElementById(canvasId).getContext("2d");
+  const labels = dataPoints.map(dp => dp.time);
+  const values = dataPoints.map(dp => dp.value);
 
-  fetch(API_URL, {
-    method: "GET",
-    headers: {
-      "X-Auth-Token": TOKEN
-    }
-  })
-  .then(response => {
-    if (!response.ok) throw new Error(`Greška: ${response.status}`);
-    return response.json();
-  })
-  .then(data => {
-    const timestamps = data.map(entry => new Date(entry.timestamp).toLocaleTimeString());
-    const values = data.map(entry => entry.data);
-
-    const ctx = document.getElementById(canvasId).getContext("2d");
-    new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: timestamps,
-        datasets: [{
-          label: label,
+  const chartConfig = {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label,
           data: values,
           borderColor: "#00bcd4",
           backgroundColor: "rgba(0, 188, 212, 0.2)",
           fill: true,
           tension: 0.3
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          min: 0,
+          max: yMax,
+          title: {
+            display: true,
+            text: "Nivo vode (m)"
           }
         }
+      },
+      plugins: {
+        annotation: minLine
+          ? {
+              annotations: {
+                minThreshold: {
+                  type: "line",
+                  yMin: minLine,
+                  yMax: minLine,
+                  borderColor: "red",
+                  borderWidth: 2,
+                  label: {
+                    content: `Minimum: ${minLine}m`,
+                    enabled: true,
+                    position: "start",
+                    backgroundColor: "rgba(255,0,0,0.7)",
+                    color: "#fff"
+                  }
+                }
+              }
+            }
+          : {}
       }
-    });
-  })
-  .catch(error => {
-    console.error(`❌ ${label} - greška:`, error.message);
-  });
+    }
+  };
+
+  new Chart(ctx, chartConfig);
 }
 
-fetchAndRender("bunar1", "chartBunar1", "Bunar 1");
-fetchAndRender("bunar2", "chartBunar2", "Bunar 2");
+async function init() {
+  const bunar1Data = await fetchData("bunar1");
+  renderChart("chartBunar1", "Bunar 1", bunar1Data, 10);
+
+  const bunar2Data = await fetchData("bunar2");
+  renderChart("chartBunar2", "Bunar 2", bunar2Data, 4, 0.6);
+}
+
+init();
 
 
