@@ -3,25 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard Bunar</title>
+  <title>Bunari Dashboard</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 </head>
 <body>
-  <h1>Monitoring nivoa vode</h1>
+  <h1>Bunari – Monitoring nivoa</h1>
 
-  <section>
-    <h2>Bunar 1</h2>
-    <div class="trenutna-vrednost" id="bunar1-vrednost">--</div>
-    <canvas id="bunar1-chart"></canvas>
-  </section>
+  <div id="errorBox" class="error"></div>
 
-  <section>
-    <h2>Bunar 2</h2>
-    <div class="trenutna-vrednost" id="bunar2-vrednost">--</div>
-    <canvas id="bunar2-chart"></canvas>
-  </section>
+  <div class="dashboard">
+    <div class="bunar">
+      <h2>Bunar 1</h2>
+      <canvas id="chartBunar1"></canvas>
+      <div class="value">Trenutna vrednost: <span id="valueBunar1">–</span> m</div>
+    </div>
+
+    <div class="bunar">
+      <h2>Bunar 2</h2>
+      <canvas id="chartBunar2"></canvas>
+      <div class="value">Trenutna vrednost: <span id="valueBunar2">–</span> m</div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
