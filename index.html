@@ -83,12 +83,12 @@
         <option value="24h">24h</option>
         <option value="7d">7d</option>
       </select>
+      <button onclick="exportBoth()">📤 Exportuj oba bunara</button>
     </div>
 
     <div class="card">
       <div class="controls">
         <span class="trend" id="trend1">Trend 1</span>
-        <button onclick="exportCSV(window.lastData1, 'bunar1.csv')">📤 Export CSV</button>
       </div>
       <canvas id="grafikon1"></canvas>
       <div id="vrednost1" class="vrednost">Trenutno: N/A</div>
@@ -97,7 +97,6 @@
     <div class="card">
       <div class="controls">
         <span class="trend" id="trend2">Trend 2</span>
-        <button onclick="exportCSV(window.lastData2, 'bunar2.csv')">📤 Export CSV</button>
       </div>
       <canvas id="grafikon2"></canvas>
       <div id="vrednost2" class="vrednost">Trenutno: N/A</div>
