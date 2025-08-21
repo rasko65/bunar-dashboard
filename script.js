@@ -1,166 +1,114 @@
-const CHANNEL = "nivoi_bunara";
-const RESOURCE1 = "bunar1";
-const RESOURCE2 = "bunar2";
-const MIN1 = 4.0;
-const MIN2 = 0.6;
-const token = "token_dlVQqzrALZ6DsGjF";
 
-const chart1 = document.getElementById("chart1").getContext("2d");
-const chart2 = document.getElementById("chart2").getContext("2d");
-let myChart1, myChart2;
 
-function formatTime(date) {
-  return date.toISOString();
-}
 
-function getTimeRange(hoursBack = 1) {
-  const to = new Date();
-  const from = new Date(to.getTime() - hoursBack * 60 * 60 * 1000);
-  return { from: formatTime(from), to: formatTime(to) };
-}
 
-async function checkBeebotteResources(channel, resources, fromTime, toTime, token) {
-  const headers = {
-    'Content-Type': 'application/json',
-    'X-Auth-Token': token
-  };
+const API_URL_1 = "https://api.beebotte.com/v1/data/read/bunar1?limit=100";
+const API_URL_2 = "https://api.beebotte.com/v1/data/read/bunar2?limit=100";
+const MIN_THRESHOLD = 20;
 
-  for (const resource of resources) {
-    const url = `https://api.beebotte.com/v1/history/read/${channel}/${resource}?from=${fromTime}&to=${toTime}`;
-    try {
-      const response = await fetch(url, { headers });
-      const text = await response.text();
+const selectors = {
+  "1h": 60 * 60 * 1000,
+  "24h": 24 * 60 * 60 * 1000,
+  "7d": 7 * 24 * 60 * 60 * 1000,
+};
 
-      try {
-        const data = JSON.parse(text);
-        if (!Array.isArray(data)) {
-          console.warn(`⚠️ '${resource}' ne vraća niz.`);
-        } else {
-          console.log(`✅ '${resource}' je dostupan.`);
-        }
-      } catch (jsonError) {
-        console.error(`❌ '${resource}' ne vraća validan JSON.`, text);
-      }
-    } catch (err) {
-      console.error(`❌ Greška za '${resource}':`, err);
-    }
-  }
-}
-
-async function writeTestData(channel, resource, value, token) {
-  const url = `https://api.beebotte.com/v1/data/write`;
-  const payload = {
-    channel,
-    resource,
-    data: value,
-    store: true
-  };
-
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Auth-Token": token
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (response.ok) {
-      console.log(`✅ Upisano u '${resource}':`, value);
-    } else {
-      const text = await response.text();
-      console.error(`❌ Greška pri upisu u '${resource}':`, text);
-    }
-  } catch (err) {
-    console.error(`❌ Network greška pri upisu u '${resource}':`, err);
-  }
-}
+let data1 = [], data2 = [];
 
 async function fetchData() {
-  const hours = parseInt(document.getElementById("rangeSelector").value);
-  const { from, to } = getTimeRange(hours);
-  const headers = {
-    'Content-Type': 'application/json',
-    'X-Auth-Token': token
-  };
-
-  const urls = [
-    `https://api.beebotte.com/v1/history/read/${CHANNEL}/${RESOURCE1}?from=${from}&to=${to}`,
-    `https://api.beebotte.com/v1/history/read/${CHANNEL}/${RESOURCE2}?from=${from}&to=${to}`
-  ];
-
-  try {
-    const [res1Raw, res2Raw] = await Promise.all(urls.map(url => fetch(url, { headers }).then(r => r.text())));
-    const data1 = JSON.parse(res1Raw);
-    const data2 = JSON.parse(res2Raw);
-
-    if (!Array.isArray(data1) || !Array.isArray(data2)) {
-      console.warn("⚠️ Podaci nisu nizovi. Preskačem update.");
-      return;
-    }
-
-    updateCharts(data1, data2);
-    updateValues(data1, data2);
-  } catch (err) {
-    console.error("Greška pri čitanju:", err);
-  }
+  const [res1, res2] = await Promise.all([
+    fetch(API_URL_1).then(r => r.json()),
+    fetch(API_URL_2).then(r => r.json())
+  ]);
+  data1 = res1.reverse();
+  data2 = res2.reverse();
+  updateChart("24h");
 }
 
-function updateCharts(data1, data2) {
-  const labels = data1.map(d => new Date(d.timestamp).toLocaleTimeString());
-  const values1 = data1.map(d => d.data);
-  const values2 = data2.map(d => d.data);
+function updateChart(rangeKey) {
+  const now = Date.now();
+  const range = selectors[rangeKey];
 
-  if (myChart1) myChart1.destroy();
-  if (myChart2) myChart2.destroy();
+  const filtered1 = data1.filter(d => now - new Date(d.timestamp) <= range);
+  const filtered2 = data2.filter(d => now - new Date(d.timestamp) <= range);
 
-  myChart1 = new Chart(chart1, {
+  const labels = filtered1.map(d => new Date(d.timestamp).toLocaleTimeString());
+  const values1 = filtered1.map(d => d.data ?? 0);
+  const values2 = filtered2.map(d => d.data ?? 0);
+
+  renderChart(labels, values1, values2);
+  updateMinIndicators(values1, values2);
+}
+
+function renderChart(labels, values1, values2) {
+  const ctx = document.getElementById("chart").getContext("2d");
+  if (window.myChart) window.myChart.destroy();
+
+  window.myChart = new Chart(ctx, {
     type: "line",
     data: {
       labels,
-      datasets: [{
-        label: "Bunar 1",
-        data: values1,
-        borderColor: values1[values1.length - 1] < MIN1 ? "red" : "blue",
-        fill: false
-      }]
-    }
-  });
-
-  myChart2 = new Chart(chart2, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: "Bunar 2",
-        data: values2,
-        borderColor: values2[values2.length - 1] < MIN2 ? "red" : "green",
-        fill: false
-      }]
+      datasets: [
+        {
+          label: "Bunar 1",
+          data: values1,
+          borderColor: "#4e79a7",
+          fill: false
+        },
+        {
+          label: "Bunar 2",
+          data: values2,
+          borderColor: "#f28e2b",
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
     }
   });
 }
 
-function updateValues(data1, data2) {
-  const val1 = data1[data1.length - 1]?.data ?? "N/A";
-  const val2 = data2[data2.length - 1]?.data ?? "N/A";
+function updateMinIndicators(values1, values2) {
+  const min1 = Math.min(...values1);
+  const min2 = Math.min(...values2);
 
-  document.getElementById("value1").textContent = val1.toFixed(2);
-  document.getElementById("value2").textContent = val2.toFixed(2);
+  document.getElementById("min1").textContent = min1;
+  document.getElementById("min2").textContent = min2;
 
-  document.getElementById("value1").style.color = val1 < MIN1 ? "red" : "white";
-  document.getElementById("value2").style.color = val2 < MIN2 ? "red" : "white";
+  document.getElementById("min1").style.color = min1 < MIN_THRESHOLD ? "red" : "inherit";
+  document.getElementById("min2").style.color = min2 < MIN_THRESHOLD ? "red" : "inherit";
 }
 
-function exportCSV(data1, data2) {
+function exportCSV() {
   let csv = "timestamp,bunar1,bunar2\n";
   for (let i = 0; i < data1.length; i++) {
     const t = new Date(data1[i].timestamp).toISOString();
-    const v1 = data1[i].data;
-    const v2 = data2[i]?.data ?? "";
+    const v1 = data1[i].data ?? 0;
+    const v2 = data2[i]?.data ?? 0;
     csv += `${t},${v1},${v2}\n`;
   }
 
-  const blob
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "nivoi_bunara.csv";
+  link.click();
+}
+
+document.getElementById("selector").addEventListener("change", e => {
+  updateChart(e.target.value);
+});
+
+document.getElementById("exportBtn").addEventListener("click", exportCSV);
+
+document.getElementById("darkToggle").addEventListener("click", () => {
+  document.body.classList.toggle("dark-mode");
+});
+
+fetchData();
 
