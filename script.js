@@ -1,138 +1,180 @@
-const API_KEY = "token_dlVQqzrALZ6DsGjF"; // zameni svojim Beebotte tokenom
 const CHANNEL = "nivoi_bunara";
 const RESOURCE1 = "bunar1";
 const RESOURCE2 = "bunar2";
+const MIN1 = 4.0;
+const MIN2 = 0.6;
+const token = "token_dlVQqzrALZ6DsGjF";
 
-let chart1, chart2;
-let selectedRange = "1h";
+const chart1 = document.getElementById("chart1").getContext("2d");
+const chart2 = document.getElementById("chart2").getContext("2d");
+let myChart1, myChart2;
 
-document.getElementById("rangeSelector").addEventListener("change", e => {
-  selectedRange = e.target.value;
-  document.getElementById("chart-title").textContent = `Grafikon za poslednji ${selectedRange}`;
-  fetchData();
-});
-
-function safeDisplayValue(value) {
-  return value !== null && value !== undefined ? `${value} m` : "Nema podatka";
+function formatTime(date) {
+  return date.toISOString();
 }
 
-function checkMinimums(b1, b2) {
-  document.getElementById("bunar1-value").classList.toggle("alert", b1 < 4);
-  document.getElementById("bunar2-value").classList.toggle("alert", b2 < 0.6);
+function getTimeRange(hoursBack = 1) {
+  const to = new Date();
+  const from = new Date(to.getTime() - hoursBack * 60 * 60 * 1000);
+  return { from: formatTime(from), to: formatTime(to) };
 }
 
-function updateDisplay(b1, b2) {
-  document.getElementById("bunar1-value").textContent = `Bunar 1: ${safeDisplayValue(b1)}`;
-  document.getElementById("bunar2-value").textContent = `Bunar 2: ${safeDisplayValue(b2)}`;
-  checkMinimums(b1, b2);
-}
+async function checkBeebotteResources(channel, resources, fromTime, toTime, token) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Auth-Token': token
+  };
 
-function updateCharts(data1, data2) {
-  chart1.data.labels = data1.map(d => new Date(d.time).toLocaleTimeString());
-  chart1.data.datasets[0].data = data1.map(d => d.data);
-  chart1.update();
+  for (const resource of resources) {
+    const url = `https://api.beebotte.com/v1/history/read/${channel}/${resource}?from=${fromTime}&to=${toTime}`;
+    try {
+      const response = await fetch(url, { headers });
+      const text = await response.text();
 
-  chart2.data.labels = data2.map(d => new Date(d.time).toLocaleTimeString());
-  chart2.data.datasets[0].data = data2.map(d => d.data);
-  chart2.update();
-}
-
-function initCharts() {
-  const ctx1 = document.getElementById("chart1").getContext("2d");
-  const ctx2 = document.getElementById("chart2").getContext("2d");
-
-  chart1 = new Chart(ctx1, {
-    type: "line",
-    data: { labels: [], datasets: [{
-      label: "Bunar 1",
-      data: [],
-      borderColor: "#4bc0c0",
-      backgroundColor: "transparent",
-      tension: 0.3
-    }]},
-    options: {
-      scales: {
-        y: { min: 0, max: 10 }
+      try {
+        const data = JSON.parse(text);
+        if (!Array.isArray(data)) {
+          console.warn(`⚠️ '${resource}' ne vraća niz.`);
+        } else {
+          console.log(`✅ '${resource}' je dostupan.`);
+        }
+      } catch (jsonError) {
+        console.error(`❌ '${resource}' ne vraća validan JSON.`, text);
       }
+    } catch (err) {
+      console.error(`❌ Greška za '${resource}':`, err);
     }
-  });
-
-  chart2 = new Chart(ctx2, {
-    type: "line",
-    data: { labels: [], datasets: [{
-      label: "Bunar 2",
-      data: [],
-      borderColor: "#ff6384",
-      backgroundColor: "transparent",
-      tension: 0.3
-    }]},
-    options: {
-      scales: {
-        y: { min: 0, max: 4 }
-      }
-    }
-  });
+  }
 }
 
 async function fetchData() {
-  const headers = { "X-Auth-Token": API_KEY };
-  const now = new Date();
-  const rangeMs = {
-    "1h": 60 * 60 * 1000,
-    "24h": 24 * 60 * 60 * 1000,
-    "7d": 7 * 24 * 60 * 60 * 1000
-  }[selectedRange];
+  const { from, to } = getTimeRange();
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Auth-Token': token
+  };
 
-  const fromTime = new Date(now.getTime() - rangeMs).toISOString();
-  const toTime = now.toISOString();
-
-  const url1 = `https://api.beebotte.com/v1/history/read/${CHANNEL}/${RESOURCE1}?from=${fromTime}&to=${toTime}`;
-  const url2 = `https://api.beebotte.com/v1/history/read/${CHANNEL}/${RESOURCE2}?from=${fromTime}&to=${toTime}`;
+  const urls = [
+    `https://api.beebotte.com/v1/history/read/${CHANNEL}/${RESOURCE1}?from=${from}&to=${to}`,
+    `https://api.beebotte.com/v1/history/read/${CHANNEL}/${RESOURCE2}?from=${from}&to=${to}`
+  ];
 
   try {
-    const [res1, res2] = await Promise.all([
-      fetch(url1, { headers }).then(r => r.json()),
-      fetch(url2, { headers }).then(r => r.json())
-    ]);
+    const [res1Raw, res2Raw] = await Promise.all(urls.map(url => fetch(url, { headers }).then(r => r.text())));
+    const data1 = JSON.parse(res1Raw);
+    const data2 = JSON.parse(res2Raw);
 
-    if (!Array.isArray(res1) || !Array.isArray(res2)) {
-      console.error("Nevalidan odgovor od API-ja:", res1, res2);
+    if (!Array.isArray(data1) || !Array.isArray(data2)) {
+      console.warn("⚠️ Podaci nisu nizovi. Preskačem update.");
       return;
     }
 
-    if (res1.length === 0 || res2.length === 0) {
-      console.warn("Nema podataka u izabranom opsegu.");
-    }
-
-    const last1 = res1[res1.length - 1]?.data ?? null;
-    const last2 = res2[res2.length - 1]?.data ?? null;
-
-    updateDisplay(last1, last2);
-    updateCharts(res1, res2);
+    updateCharts(data1, data2);
+    updateValues(data1, data2);
   } catch (err) {
     console.error("Greška pri čitanju:", err);
   }
 }
 
-function exportCSV() {
-  const b1 = document.getElementById("bunar1-value").textContent;
-  const b2 = document.getElementById("bunar2-value").textContent;
-  const rows = [
-    ["Bunar", "Vrednost"],
-    ["Bunar 1", b1],
-    ["Bunar 2", b2]
-  ];
-  const csv = rows.map(r => r.join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+function updateCharts(data1, data2) {
+  const labels = data1.map(d => new Date(d.timestamp).toLocaleTimeString());
+  const values1 = data1.map(d => d.data);
+  const values2 = data2.map(d => d.data);
+
+  if (myChart1) myChart1.destroy();
+  if (myChart2) myChart2.destroy();
+
+  myChart1 = new Chart(chart1, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Bunar 1",
+        data: values1,
+        borderColor: values1[values1.length - 1] < MIN1 ? "red" : "blue",
+        fill: false
+      }]
+    }
+  });
+
+  myChart2 = new Chart(chart2, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Bunar 2",
+        data: values2,
+        borderColor: values2[values2.length - 1] < MIN2 ? "red" : "green",
+        fill: false
+      }]
+    }
+  });
+}
+
+function updateValues(data1, data2) {
+  const val1 = data1[data1.length - 1]?.data ?? "N/A";
+  const val2 = data2[data2.length - 1]?.data ?? "N/A";
+
+  document.getElementById("value1").textContent = val1.toFixed(2);
+  document.getElementById("value2").textContent = val2.toFixed(2);
+
+  document.getElementById("value1").style.color = val1 < MIN1 ? "red" : "white";
+  document.getElementById("value2").style.color = val2 < MIN2 ? "red" : "white";
+}
+
+function exportCSV(data1, data2) {
+  let csv = "timestamp,bunar1,bunar2\n";
+  for (let i = 0; i < data1.length; i++) {
+    const t = new Date(data1[i].timestamp).toISOString();
+    const v1 = data1[i].data;
+    const v2 = data2[i]?.data ?? "";
+    csv += `${t},${v1},${v2}\n`;
+  }
+
+  const blob = new Blob([csv], { type: "text/csv" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = "bunari.csv";
+  link.download = "nivoi_bunara.csv";
   link.click();
 }
 
-initCharts();
-fetchData();
-setInterval(fetchData, 30000);
+document.getElementById("exportBtn").addEventListener("click", async () => {
+  const { from, to } = getTimeRange();
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Auth-Token': token
+  };
 
+  const urls = [
+    `https://api.beebotte.com/v1/history/read/${CHANNEL}/${RESOURCE1}?from=${from}&to=${to}`,
+    `https://api.beebotte.com/v1/history/read/${CHANNEL}/${RESOURCE2}?from=${from}&to=${to}`
+  ];
+
+  try {
+    const [res1Raw, res2Raw] = await Promise.all(urls.map(url => fetch(url, { headers }).then(r => r.text())));
+    const data1 = JSON.parse(res1Raw);
+    const data2 = JSON.parse(res2Raw);
+    exportCSV(data1, data2);
+  } catch (err) {
+    console.error("Greška pri eksportu:", err);
+  }
+});
+
+document.getElementById("rangeSelector").addEventListener("change", () => {
+  fetchData();
+});
+
+document.getElementById("darkModeToggle").addEventListener("click", () => {
+  document.body.classList.toggle("dark-mode");
+});
+
+setInterval(fetchData, 60000); // refresh na 60s
+
+// Prvo proveri dostupnost resursa
+const { from, to } = getTimeRange();
+checkBeebotteResources(CHANNEL, [RESOURCE1, RESOURCE2], from, to, token);
+
+// Pokreni inicijalni fetch
+fetchData();
 
 
