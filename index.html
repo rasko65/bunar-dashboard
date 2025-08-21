@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bunari</title>
+  <title>Bunari Dashboard</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <h1>Bunari – Monitoring nivoa</h1>
@@ -15,17 +14,15 @@
   <div class="dashboard">
     <div class="bunar">
       <h2>Bunar 1</h2>
-      <canvas id="chartBunar1"></canvas>
       <div class="value">Trenutna vrednost: <span id="valueBunar1">–</span> m</div>
     </div>
 
     <div class="bunar">
       <h2>Bunar 2</h2>
-      <canvas id="chartBunar2"></canvas>
       <div class="value">Trenutna vrednost: <span id="valueBunar2">–</span> m</div>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js" defer></script>
 </body>
 </html>
