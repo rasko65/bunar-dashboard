@@ -70,7 +70,7 @@ function updateCurrentValue(elementId, data) {
 }
 
 async function initDashboard() {
-  const token = 'token_dlVQqzrALZ6DsGjF;
+  const token = 'token_dlVQqzrALZ6DsGjF';
   const channel = 'nivoi_bunara';
 
   const bunar1Data = await fetchData(channel, 'bunar1', token);
