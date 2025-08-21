@@ -15,6 +15,7 @@ async function fetchData(channel, resource, token) {
         errorBox.style.display = 'block';
       }
 
+      
       return [];
     }
 
