@@ -57,8 +57,11 @@ async function fetchLatestValue(resource) {
   try {
     const response = await fetch(url, { headers });
     const rawData = await response.json();
-    const value = rawData[0]?.data;
-    return Number(value);
+    const entry = rawData[0];
+    return {
+      value: Number(entry?.data),
+      timestamp: new Date(entry?.ts)
+    };
   } catch (err) {
     console.error(`Greška pri fetchLatestValue za ${resource}:`, err);
     return null;
@@ -78,11 +81,11 @@ async function refresh() {
   updateTrend("trend1", data1);
   updateTrend("trend2", data2);
 
-  const current1 = await fetchLatestValue("bunar1");
-  const current2 = await fetchLatestValue("bunar2");
+  const latest1 = await fetchLatestValue("bunar1");
+  const latest2 = await fetchLatestValue("bunar2");
 
-  updateCurrentValue("vrednost1", current1, 4);
-  updateCurrentValue("vrednost2", current2, 0.6);
+  updateCurrentValue("vrednost1", latest1, 4);
+  updateCurrentValue("vrednost2", latest2, 0.6);
 }
 
 function renderChart(canvasId, data, label) {
@@ -161,17 +164,22 @@ function updateTrend(elementId, data) {
   el.textContent = `${trend}${delta.toFixed(2)}`;
 }
 
-function updateCurrentValue(elementId, value, minThreshold) {
+function updateCurrentValue(elementId, latest, minThreshold) {
   const el = document.getElementById(elementId);
-  if (value === null || isNaN(value)) {
+  if (!latest || isNaN(latest.value)) {
     el.textContent = "Trenutno: N/A";
     el.style.color = "#e0e0e0";
     el.classList.remove("alert");
     return;
   }
 
-  el.textContent = `Trenutno: ${value.toFixed(2)} m`;
-  if (value < minThreshold) {
+  const timeStr = latest.timestamp.toLocaleTimeString("sr-RS", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+
+  el.textContent = `Trenutno: ${latest.value.toFixed(2)} m u ${timeStr}`;
+  if (latest.value < minThreshold) {
     el.style.color = "red";
     el.classList.add("alert");
   } else {
