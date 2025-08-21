@@ -150,6 +150,6 @@ function exportBoth() {
   const data2 = window.lastData2 || [];
 
   const timestamps = new Set([
-    ...data1.map(d => d.x.toISOString()),
+    ...data1.map(d => d.x.toISOString(),
     ...data2.map(d => d.x.toISOString)
 
