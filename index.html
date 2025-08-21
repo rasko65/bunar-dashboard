@@ -3,60 +3,99 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bunari – Nivoi</title>
-  <link rel="manifest" href="manifest.json">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
-  <link rel="stylesheet" href="style.css" />
+  <title>IoT Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.min.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    header {
+      padding: 1rem;
+      text-align: center;
+      background-color: #1f1f1f;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      padding: 1rem;
+      max-width: 900px;
+      margin: auto;
+    }
+    .card {
+      background-color: #1e1e1e;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    canvas {
+      width: 100% !important;
+      height: 300px !important;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    select, button {
+      padding: 0.5rem;
+      font-size: 1rem;
+      background-color: #2c2c2c;
+      color: #e0e0e0;
+      border: none;
+      border-radius: 4px;
+    }
+    .trend {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    @media (max-width: 600px) {
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
 </head>
 <body>
+  <header>BUNARI</header>
   <div class="container">
-    <header class="header">
-      <h1>📡 Nivoi bunara</h1>
-      <div class="header-controls">
-        <label for="rangeSelector">Opseg:</label>
-        <select id="rangeSelector">
-          <option value="1h">1h</option>
-          <option value="6h">6h</option>
-          <option value="12h">12h</option>
-          <option value="24h">24h</option>
-          <option value="7d">7d</option>
-        </select>
-        <button id="exportAll">📤 Export CSV (oba)</button>
+    <div class="controls">
+      <label for="rangeSelector">Opseg:</label>
+      <select id="rangeSelector">
+        <option value="1h">1h</option>
+        <option value="24h">24h</option>
+        <option value="7d">7d</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <div class="controls">
+        <span class="trend" id="trend1">Trend 1</span>
+        <button onclick="exportCSV(window.lastData1, 'bunar1.csv')">📤 Export CSV</button>
       </div>
-    </header>
+      <canvas id="grafikon1"></canvas>
+    </div>
 
-    <main class="grid">
-      <section class="card">
-        <div class="card-head">
-          <h2>Bunar 1</h2>
-          <div class="value big" id="value1">—</div>
-          <div class="status" id="status1"></div>
-        </div>
-        <canvas id="chart1" height="120"></canvas>
-      </section>
-
-      <section class="card">
-        <div class="card-head">
-          <h2>Bunar 2</h2>
-          <div class="value big" id="value2">—</div>
-          <div class="status" id="status2"></div>
-        </div>
-        <canvas id="chart2" height="120"></canvas>
-      </section>
-    </main>
-
-    <footer class="footer">
-      <small>Automatsko osvežavanje na 30 s • PWA podržana (Dodaj na ekran)</small>
-    </footer>
+    <div class="card">
+      <div class="controls">
+        <span class="trend" id="trend2">Trend 2</span>
+        <button onclick="exportCSV(window.lastData2, 'bunar2.csv')">📤 Export CSV</button>
+      </div>
+      <canvas id="grafikon2"></canvas>
+    </div>
   </div>
 
   <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js');
-    }
-  </script>
 </body>
 </html>

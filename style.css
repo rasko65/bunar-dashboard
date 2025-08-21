@@ -1,92 +1,32 @@
-:root {
-  --bg: #0f1115;
-  --panel: #161a22;
-  --muted: #9aa4b2;
-  --text: #e5e7eb;
-  --good: #10b981;
-  --warn: #f59e0b;
-  --bad: #ef4444;
-  --accent: #60a5fa;
-}
-
-* { box-sizing: border-box; }
-html, body { height: 100%; }
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #121212;
+  color: #fff;
 }
 
-.container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
 
-.header {
+canvas {
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  margin-bottom: 40px;
+}
+
+.controls {
+  margin-top: 20px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.header h1 { margin: 0; font-weight: 700; }
-
-.header-controls {
-  display: flex; gap: 8px; align-items: center;
 }
 
 select, button {
-  background: var(--panel);
-  color: var(--text);
-  border: 1px solid #262b36;
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 14px;
+  background-color: #222;
+  color: #fff;
+  border: 1px solid #444;
+  padding: 8px 12px;
+  border-radius: 4px;
 }
-
-button { cursor: pointer; }
-button:hover { border-color: #3a4253; }
-
-.grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-@media (min-width: 800px) {
-  .grid { grid-template-columns: 1fr 1fr; }
-}
-
-.card {
-  background: var(--panel);
-  border: 1px solid #1f2430;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 10px 25px rgba(0,0,0,.25);
-}
-
-.card-head {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas:
-    "title value"
-    "status value";
-  gap: 4px 8px;
-  align-items: end;
-  margin-bottom: 10px;
-}
-
-.card-head h2 { grid-area: title; margin: 0; font-size: 18px; color: var(--muted); }
-.value.big {
-  grid-area: value;
-  font-size: clamp(36px, 5.5vw, 56px);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-.status { grid-area: status; color: var(--muted); font-size: 13px; }
-
-.status.ok { color: var(--good); }
-.status.low { color: var(--bad); }
-
-.footer { margin-top: 16px; color: var(--muted); text-align: center; }
-
-canvas { background: #0e121a; border-radius: 12px; }
