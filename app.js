@@ -1,6 +1,6 @@
 let chart1, chart2;
 let lastData1 = [], lastData2 = [];
- 
+
 function createChart(ctx, label) {
   return new Chart(ctx, {
     type: 'line',
