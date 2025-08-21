@@ -1,5 +1,5 @@
-async function fetchData(channel, resource, token) {
-  const url = `https://api.beebotte.com/v1/history/${channel}/${resource}?limit=50`;
+async function fetchLastValue(channel, resource, token) {
+  const url = `https://api.beebotte.com/v1/data/${channel}/${resource}/last`;
   const headers = { 'X-Auth-Token': token };
 
   try {
@@ -8,64 +8,15 @@ async function fetchData(channel, resource, token) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`❌ API greška (${response.status}):`, errorText);
-
-      const errorBox = document.getElementById('errorBox');
-      if (errorBox) {
-        errorBox.textContent = `Greška: ${response.status} – ${errorText}`;
-        errorBox.style.display = 'block';
-      }
-
-      
-      return [];
+      return null;
     }
 
-    const rawData = await response.json();
-    console.log(`📦 Raw podaci za ${resource}:`, rawData);
-
-    const parsedData = rawData.map(entry => ({
-      x: new Date(entry.timestamp),
-      y: Number(entry.data)
-    }));
-
-    return parsedData;
+    const raw = await response.json();
+    console.log(`📍 Last za ${resource}:`, raw);
+    return Number(raw.data);
   } catch (error) {
     console.error(`❌ Fetch error za ${resource}:`, error);
-    return [];
-  }
-}
-
-function renderChart(canvasId, data, label, color) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) {
-    console.error(`❌ Canvas ${canvasId} nije pronađen`);
-    return;
-  }
-
-  new Chart(canvas, {
-    type: 'line',
-    data: {
-      datasets: [{
-        label,
-        data,
-        borderColor: color,
-        fill: false,
-        tension: 0.3
-      }]
-    },
-    options: {
-      scales: {
-        x: { type: 'time', time: { unit: 'minute' } },
-        y: { beginAtZero: true }
-      }
-    }
-  });
-}
-
-function updateCurrentValue(elementId, data) {
-  const value = data[data.length - 1]?.y;
-  const el = document.getElementById(elementId);
-  if (el) {
-    el.textContent = value !== undefined ? value.toFixed(2) : 'N/A';
+    return null;
   }
 }
 
@@ -73,17 +24,18 @@ async function initDashboard() {
   const token = 'token_dlVQqzrALZ6DsGjF';
   const channel = 'nivoi_bunara';
 
-  const bunar1Data = await fetchData(channel, 'bunar1', token);
-  const bunar2Data = await fetchData(channel, 'bunar2', token);
+  const bunar1Value = await fetchLastValue(channel, 'bunar1', token);
+  const bunar2Value = await fetchLastValue(channel, 'bunar2', token);
 
-  renderChart('chartBunar1', bunar1Data, 'Bunar 1', '#00bcd4');
-  renderChart('chartBunar2', bunar2Data, 'Bunar 2', '#ff9800');
+  const el1 = document.getElementById('valueBunar1');
+  const el2 = document.getElementById('valueBunar2');
 
-  updateCurrentValue('valueBunar1', bunar1Data);
-  updateCurrentValue('valueBunar2', bunar2Data);
+  if (el1) el1.textContent = bunar1Value !== null ? bunar1Value.toFixed(2) : 'N/A';
+  if (el2) el2.textContent = bunar2Value !== null ? bunar2Value.toFixed(2) : 'N/A';
 }
 
-// Automatski refresh na svakih 60 sekundi
 initDashboard();
 setInterval(initDashboard, 60000);
+
+
 
