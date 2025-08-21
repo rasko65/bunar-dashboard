@@ -62,6 +62,9 @@ async function refresh() {
 
   updateTrend("trend1", data1);
   updateTrend("trend2", data2);
+
+  updateCurrentValue("vrednost1", data1, 4);
+  updateCurrentValue("vrednost2", data2, 0.6);
 }
 
 function renderChart(canvasId, data, label) {
@@ -71,7 +74,6 @@ function renderChart(canvasId, data, label) {
     window[canvasId + "_chart"].destroy();
   }
 
-  // Fiksne ordinate
   let yMin = 0;
   let yMax = canvasId === "grafikon1" ? 10 : 4;
 
@@ -128,6 +130,19 @@ function updateTrend(elementId, data) {
   const delta = data[data.length - 1].y - data[0].y;
   const trend = delta > 0 ? "📈 +" : delta < 0 ? "📉 " : "➖ ";
   el.textContent = `${trend}${delta.toFixed(2)}`;
+}
+
+function updateCurrentValue(elementId, data, minThreshold) {
+  const el = document.getElementById(elementId);
+  const current = data.at(-1)?.y;
+  if (current === undefined) {
+    el.textContent = "Trenutno: N/A";
+    el.style.color = "#e0e0e0";
+    return;
+  }
+
+  el.textContent = `Trenutno: ${current.toFixed(2)} m`;
+  el.style.color = current < minThreshold ? "red" : "#e0e0e0";
 }
 
 function exportCSV(data, filename) {
