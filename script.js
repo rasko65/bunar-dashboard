@@ -4,6 +4,12 @@ const RESOURCE1 = "bunar1";
 const RESOURCE2 = "bunar2";
 
 let chart1, chart2;
+let selectedRange = "1h";
+
+document.getElementById("rangeSelector").addEventListener("change", e => {
+  selectedRange = e.target.value;
+  fetchData();
+});
 
 function safeDisplayValue(value) {
   return value !== null && value !== undefined ? `${value} m` : "Nema podatka";
@@ -20,15 +26,13 @@ function updateDisplay(b1, b2) {
   checkMinimums(b1, b2);
 }
 
-function updateCharts(b1, b2) {
-  const time = new Date().toLocaleTimeString();
-
-  chart1.data.labels.push(time);
-  chart1.data.datasets[0].data.push(b1);
+function updateCharts(data1, data2) {
+  chart1.data.labels = data1.map(d => new Date(d.ts).toLocaleTimeString());
+  chart1.data.datasets[0].data = data1.map(d => d.data);
   chart1.update();
 
-  chart2.data.labels.push(time);
-  chart2.data.datasets[0].data.push(b2);
+  chart2.data.labels = data2.map(d => new Date(d.ts).toLocaleTimeString());
+  chart2.data.datasets[0].data = data2.map(d => d.data);
   chart2.update();
 }
 
@@ -38,16 +42,13 @@ function initCharts() {
 
   chart1 = new Chart(ctx1, {
     type: "line",
-    data: {
-      labels: [],
-      datasets: [{
-        label: "Bunar 1",
-        data: [],
-        borderColor: "#4bc0c0",
-        backgroundColor: "transparent",
-        tension: 0.3
-      }]
-    },
+    data: { labels: [], datasets: [{
+      label: "Bunar 1",
+      data: [],
+      borderColor: "#4bc0c0",
+      backgroundColor: "transparent",
+      tension: 0.3
+    }]},
     options: {
       scales: {
         y: { min: 0, max: 10 }
@@ -57,16 +58,13 @@ function initCharts() {
 
   chart2 = new Chart(ctx2, {
     type: "line",
-    data: {
-      labels: [],
-      datasets: [{
-        label: "Bunar 2",
-        data: [],
-        borderColor: "#ff6384",
-        backgroundColor: "transparent",
-        tension: 0.3
-      }]
-    },
+    data: { labels: [], datasets: [{
+      label: "Bunar 2",
+      data: [],
+      borderColor: "#ff6384",
+      backgroundColor: "transparent",
+      tension: 0.3
+    }]},
     options: {
       scales: {
         y: { min: 0, max: 4 }
@@ -77,8 +75,8 @@ function initCharts() {
 
 async function fetchData() {
   const headers = { "X-Auth-Token": API_KEY };
-  const url1 = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${RESOURCE1}?limit=1`;
-  const url2 = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${RESOURCE2}?limit=1`;
+  const url1 = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${RESOURCE1}?limit=300`;
+  const url2 = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${RESOURCE2}?limit=300`;
 
   try {
     const [res1, res2] = await Promise.all([
@@ -86,11 +84,21 @@ async function fetchData() {
       fetch(url2, { headers }).then(r => r.json())
     ]);
 
-    const b1 = res1[0]?.data ?? null;
-    const b2 = res2[0]?.data ?? null;
+    const now = Date.now();
+    const rangeMs = {
+      "1h": 60 * 60 * 1000,
+      "24h": 24 * 60 * 60 * 1000,
+      "7d": 7 * 24 * 60 * 60 * 1000
+    }[selectedRange];
 
-    updateDisplay(b1, b2);
-    updateCharts(b1, b2);
+    const data1 = res1.filter(d => now - new Date(d.ts).getTime() <= rangeMs);
+    const data2 = res2.filter(d => now - new Date(d.ts).getTime() <= rangeMs);
+
+    const last1 = data1[data1.length - 1]?.data ?? null;
+    const last2 = data2[data2.length - 1]?.data ?? null;
+
+    updateDisplay(last1, last2);
+    updateCharts(data1, data2);
   } catch (err) {
     console.error("Greška pri čitanju:", err);
   }
@@ -114,4 +122,5 @@ function exportCSV() {
 
 initCharts();
 fetchData();
-setInterval(fetchData, 5000);
+setInterval(fetchData, 30000); // refresh svakih 30 sekundi
+
