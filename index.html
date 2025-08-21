@@ -3,43 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IoT Dashboard</title>
+  <title>Dashboard Bunar</title>
+  <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header>BUNARI</header>
-  <div class="container">
-    <div class="controls">
-      <label for="rangeSelector">Opseg:</label>
-      <select id="rangeSelector">
-        <option value="1h">1h</option>
-        <option value="24h">24h</option>
-        <option value="7d">7d</option>
-      </select>
-      <button onclick="exportCombinedCSV()">📤 Export CSV (oba bunara)</button>
-    </div>
+  <h1>Monitoring nivoa vode</h1>
 
-    <div class="card">
-      <div class="controls">
-        <span class="trend" id="trend1">Trend 1</span>
-      </div>
-      <canvas id="grafikon1"></canvas>
-      <div class="current-value" id="current1">Trenutna: --</div>
-    </div>
+  <section>
+    <h2>Bunar 1</h2>
+    <div class="trenutna-vrednost" id="bunar1-vrednost">--</div>
+    <canvas id="bunar1-chart"></canvas>
+  </section>
 
-    <div class="card">
-      <div class="controls">
-        <span class="trend" id="trend2">Trend 2</span>
-      </div>
-      <canvas id="grafikon2"></canvas>
-      <div class="current-value" id="current2">Trenutna: --</div>
-    </div>
-  </div>
+  <section>
+    <h2>Bunar 2</h2>
+    <div class="trenutna-vrednost" id="bunar2-vrednost">--</div>
+    <canvas id="bunar2-chart"></canvas>
+  </section>
 
   <script src="app.js"></script>
 </body>
 </html>
-
-
