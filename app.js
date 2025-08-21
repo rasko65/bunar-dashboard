@@ -77,6 +77,16 @@ function renderChart(canvasId, data, label) {
   let yMin = 0;
   let yMax = canvasId === "grafikon1" ? 10 : 4;
 
+  let timeUnit = "minute";
+  let displayFormats = {
+    minute: "HH:mm",
+    hour: "dd.MM HH",
+    day: "dd.MM"
+  };
+
+  if (selectedRange === "24h") timeUnit = "hour";
+  if (selectedRange === "7d") timeUnit = "day";
+
   window[canvasId + "_chart"] = new Chart(ctx, {
     type: "line",
     data: {
@@ -97,8 +107,9 @@ function renderChart(canvasId, data, label) {
         x: {
           type: "time",
           time: {
-            unit: "minute",
-            tooltipFormat: "HH:mm"
+            unit: timeUnit,
+            displayFormats: displayFormats,
+            tooltipFormat: displayFormats[timeUnit]
           },
           title: {
             display: true,
