@@ -8,6 +8,7 @@ let selectedRange = "1h";
 
 document.getElementById("rangeSelector").addEventListener("change", e => {
   selectedRange = e.target.value;
+  document.getElementById("chart-title").textContent = `Grafikon za poslednji ${selectedRange}`;
   fetchData();
 });
 
@@ -21,8 +22,8 @@ function checkMinimums(b1, b2) {
 }
 
 function updateDisplay(b1, b2) {
-  document.getElementById("bunar1-value").textContent = safeDisplayValue(b1);
-  document.getElementById("bunar2-value").textContent = safeDisplayValue(b2);
+  document.getElementById("bunar1-value").textContent = `Bunar 1: ${safeDisplayValue(b1)}`;
+  document.getElementById("bunar2-value").textContent = `Bunar 2: ${safeDisplayValue(b2)}`;
   checkMinimums(b1, b2);
 }
 
@@ -75,8 +76,18 @@ function initCharts() {
 
 async function fetchData() {
   const headers = { "X-Auth-Token": API_KEY };
-  const url1 = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${RESOURCE1}?limit=300`;
-  const url2 = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${RESOURCE2}?limit=300`;
+  const now = new Date();
+  const rangeMs = {
+    "1h": 60 * 60 * 1000,
+    "24h": 24 * 60 * 60 * 1000,
+    "7d": 7 * 24 * 60 * 60 * 1000
+  }[selectedRange];
+
+  const fromTime = new Date(now.getTime() - rangeMs).toISOString();
+  const toTime = now.toISOString();
+
+  const url1 = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${RESOURCE1}?from=${fromTime}&to=${toTime}`;
+  const url2 = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${RESOURCE2}?from=${fromTime}&to=${toTime}`;
 
   try {
     const [res1, res2] = await Promise.all([
@@ -84,21 +95,15 @@ async function fetchData() {
       fetch(url2, { headers }).then(r => r.json())
     ]);
 
-    const now = Date.now();
-    const rangeMs = {
-      "1h": 60 * 60 * 1000,
-      "24h": 24 * 60 * 60 * 1000,
-      "7d": 7 * 24 * 60 * 60 * 1000
-    }[selectedRange];
+    if (res1.length === 0 || res2.length === 0) {
+      console.warn("Nema podataka u izabranom opsegu.");
+    }
 
-    const data1 = res1.filter(d => now - new Date(d.ts).getTime() <= rangeMs);
-    const data2 = res2.filter(d => now - new Date(d.ts).getTime() <= rangeMs);
-
-    const last1 = data1[data1.length - 1]?.data ?? null;
-    const last2 = data2[data2.length - 1]?.data ?? null;
+    const last1 = res1[res1.length - 1]?.data ?? null;
+    const last2 = res2[res2.length - 1]?.data ?? null;
 
     updateDisplay(last1, last2);
-    updateCharts(data1, data2);
+    updateCharts(res1, res2);
   } catch (err) {
     console.error("Greška pri čitanju:", err);
   }
@@ -122,5 +127,6 @@ function exportCSV() {
 
 initCharts();
 fetchData();
-setInterval(fetchData, 30000); // refresh svakih 30 sekundi
+setInterval(fetchData, 30000);
+
 
