@@ -28,11 +28,11 @@ function updateDisplay(b1, b2) {
 }
 
 function updateCharts(data1, data2) {
-  chart1.data.labels = data1.map(d => new Date(d.ts).toLocaleTimeString());
+  chart1.data.labels = data1.map(d => new Date(d.time).toLocaleTimeString());
   chart1.data.datasets[0].data = data1.map(d => d.data);
   chart1.update();
 
-  chart2.data.labels = data2.map(d => new Date(d.ts).toLocaleTimeString());
+  chart2.data.labels = data2.map(d => new Date(d.time).toLocaleTimeString());
   chart2.data.datasets[0].data = data2.map(d => d.data);
   chart2.update();
 }
@@ -86,14 +86,19 @@ async function fetchData() {
   const fromTime = new Date(now.getTime() - rangeMs).toISOString();
   const toTime = now.toISOString();
 
-  const url1 = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${RESOURCE1}?from=${fromTime}&to=${toTime}`;
-  const url2 = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${RESOURCE2}?from=${fromTime}&to=${toTime}`;
+  const url1 = `https://api.beebotte.com/v1/history/read/${CHANNEL}/${RESOURCE1}?from=${fromTime}&to=${toTime}`;
+  const url2 = `https://api.beebotte.com/v1/history/read/${CHANNEL}/${RESOURCE2}?from=${fromTime}&to=${toTime}`;
 
   try {
     const [res1, res2] = await Promise.all([
       fetch(url1, { headers }).then(r => r.json()),
       fetch(url2, { headers }).then(r => r.json())
     ]);
+
+    if (!Array.isArray(res1) || !Array.isArray(res2)) {
+      console.error("Nevalidan odgovor od API-ja:", res1, res2);
+      return;
+    }
 
     if (res1.length === 0 || res2.length === 0) {
       console.warn("Nema podataka u izabranom opsegu.");
@@ -128,5 +133,6 @@ function exportCSV() {
 initCharts();
 fetchData();
 setInterval(fetchData, 30000);
+
 
 
