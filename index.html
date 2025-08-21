@@ -3,36 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monitoring BUNARA</title>
+  <title>Dashboard Bunari</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="dashboard">
-    <h1>📡 Monitoring nivoa vode</h1>
-<label for="rangeSelector">Opseg vremena:</label>
-<select id="rangeSelector">
-  <option value="1h">Poslednji 1h</option>
-  <option value="24h">Poslednjih 24h</option>
-  <option value="7d">Poslednjih 7 dana</option>
-</select>
+    <h1>Monitoring nivoa vode</h1>
 
-    <div class="bunar">
-      <h2>Bunar 1</h2>
-      <div id="bunar1-value" class="value">--</div>
-      <canvas id="chart1" width="400" height="200"></canvas>
+    <label for="rangeSelector">Opseg vremena:</label>
+    <select id="rangeSelector">
+      <option value="1h">Poslednji 1h</option>
+      <option value="24h">Poslednjih 24h</option>
+      <option value="7d">Poslednjih 7 dana</option>
+    </select>
+
+    <div class="values">
+      <div id="bunar1-value" class="value-box">Bunar 1: --</div>
+      <div id="bunar2-value" class="value-box">Bunar 2: --</div>
     </div>
 
-    <div class="bunar">
-      <h2>Bunar 2</h2>
-      <div id="bunar2-value" class="value">--</div>
-      <canvas id="chart2" width="400" height="200"></canvas>
+    <div class="charts">
+      <h2 id="chart-title">Grafikon za poslednji 1h</h2>
+      <canvas id="chart1"></canvas>
+      <canvas id="chart2"></canvas>
     </div>
 
     <button onclick="exportCSV()">📤 Eksportuj CSV</button>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
-
