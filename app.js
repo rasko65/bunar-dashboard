@@ -71,6 +71,10 @@ function renderChart(canvasId, data, label) {
     window[canvasId + "_chart"].destroy();
   }
 
+  // Fiksne ordinate
+  let yMin = 0;
+  let yMax = canvasId === "grafikon1" ? 10 : 4;
+
   window[canvasId + "_chart"] = new Chart(ctx, {
     type: "line",
     data: {
@@ -100,6 +104,8 @@ function renderChart(canvasId, data, label) {
           }
         },
         y: {
+          min: yMin,
+          max: yMax,
           title: {
             display: true,
             text: "Vrednost"
@@ -135,3 +141,4 @@ function exportCSV(data, filename) {
   link.download = filename;
   link.click();
 }
+
