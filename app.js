@@ -145,12 +145,14 @@ function updateTrend(elementId, data) {
 
 function updateCurrentValue(elementId, data, minThreshold) {
   const el = document.getElementById(elementId);
-  const current = data.at(-1)?.y;
-  if (current === undefined) {
+
+  if (!Array.isArray(data) || data.length === 0) {
     el.textContent = "Trenutno: N/A";
     el.style.color = "#e0e0e0";
     return;
   }
+
+  const current = data[data.length - 1].y;
 
   el.textContent = `Trenutno: ${current.toFixed(2)} m`;
   el.style.color = current < minThreshold ? "red" : "#e0e0e0";
