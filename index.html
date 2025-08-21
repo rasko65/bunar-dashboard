@@ -3,22 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monitoring Bunara</title>
+  <title>Monitoring BUNARA</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="dashboard">
-    <h1>Monitoring nivoa</h1>
+    <h1>📡 Monitoring nivoa vode</h1>
+
     <div class="bunar">
       <h2>Bunar 1</h2>
       <div id="bunar1-value" class="value">--</div>
+      <canvas id="chart1" width="400" height="200"></canvas>
     </div>
+
     <div class="bunar">
       <h2>Bunar 2</h2>
       <div id="bunar2-value" class="value">--</div>
+      <canvas id="chart2" width="400" height="200"></canvas>
     </div>
+
     <button onclick="exportCSV()">📤 Eksportuj CSV</button>
   </div>
+
   <script src="script.js"></script>
 </body>
 </html>
+
