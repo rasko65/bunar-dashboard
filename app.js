@@ -156,4 +156,26 @@ function exportCSV(data, filename) {
   link.download = filename;
   link.click();
 }
+function exportBoth() {
+  const data1 = window.lastData1 || [];
+  const data2 = window.lastData2 || [];
+
+  const timestamps = new Set([
+    ...data1.map(d => d.x.toISOString()),
+    ...data2.map(d => d.x.toISOString())
+  ]);
+
+  const rows = Array.from(timestamps).sort().map(ts => {
+    const val1 = data1.find(d => d.x.toISOString() === ts)?.y ?? "";
+    const val2 = data2.find(d => d.x.toISOString() === ts)?.y ?? "";
+    return `${ts},${val1},${val2}`;
+  });
+
+  const csv = "timestamp,bunar1,bunar2\n" + rows.join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "bunari.csv";
+  link.click();
+}
 
