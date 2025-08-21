@@ -1,56 +1,15 @@
 body {
-  font-family: 'Segoe UI', sans-serif;
-  background-color: #f0f0f0;
-  color: #222;
-  margin: 0;
-  padding: 0;
-}
-
-.dark-mode {
   background-color: #121212;
-  color: #eee;
-}
-
-.container {
-  max-width: 800px;
-  margin: auto;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', sans-serif;
+  text-align: center;
   padding: 20px;
 }
 
-.values {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: 20px;
-}
-
-.value-box {
-  text-align: center;
-}
-
-.value {
-  font-size: 48px;
-  font-weight: bold;
-}
-
-.charts {
-  margin-bottom: 20px;
-}
-
 canvas {
-  width: 100% !important;
-  height: 300px !important;
-  margin-bottom: 20px;
-}
-
-.controls {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-button, select {
-  padding: 10px;
-  font-size: 16px;
-  cursor: pointer;
+  max-width: 800px;
+  margin: 40px auto;
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
 }
