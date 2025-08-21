@@ -47,8 +47,39 @@ async function checkBeebotteResources(channel, resources, fromTime, toTime, toke
   }
 }
 
+async function writeTestData(channel, resource, value, token) {
+  const url = `https://api.beebotte.com/v1/data/write`;
+  const payload = {
+    channel,
+    resource,
+    data: value,
+    store: true
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Auth-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      console.log(`✅ Upisano u '${resource}':`, value);
+    } else {
+      const text = await response.text();
+      console.error(`❌ Greška pri upisu u '${resource}':`, text);
+    }
+  } catch (err) {
+    console.error(`❌ Network greška pri upisu u '${resource}':`, err);
+  }
+}
+
 async function fetchData() {
-  const { from, to } = getTimeRange();
+  const hours = parseInt(document.getElementById("rangeSelector").value);
+  const { from, to } = getTimeRange(hours);
   const headers = {
     'Content-Type': 'application/json',
     'X-Auth-Token': token
@@ -131,50 +162,5 @@ function exportCSV(data1, data2) {
     csv += `${t},${v1},${v2}\n`;
   }
 
-  const blob = new Blob([csv], { type: "text/csv" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "nivoi_bunara.csv";
-  link.click();
-}
-
-document.getElementById("exportBtn").addEventListener("click", async () => {
-  const { from, to } = getTimeRange();
-  const headers = {
-    'Content-Type': 'application/json',
-    'X-Auth-Token': token
-  };
-
-  const urls = [
-    `https://api.beebotte.com/v1/history/read/${CHANNEL}/${RESOURCE1}?from=${from}&to=${to}`,
-    `https://api.beebotte.com/v1/history/read/${CHANNEL}/${RESOURCE2}?from=${from}&to=${to}`
-  ];
-
-  try {
-    const [res1Raw, res2Raw] = await Promise.all(urls.map(url => fetch(url, { headers }).then(r => r.text())));
-    const data1 = JSON.parse(res1Raw);
-    const data2 = JSON.parse(res2Raw);
-    exportCSV(data1, data2);
-  } catch (err) {
-    console.error("Greška pri eksportu:", err);
-  }
-});
-
-document.getElementById("rangeSelector").addEventListener("change", () => {
-  fetchData();
-});
-
-document.getElementById("darkModeToggle").addEventListener("click", () => {
-  document.body.classList.toggle("dark-mode");
-});
-
-setInterval(fetchData, 60000); // refresh na 60s
-
-// Prvo proveri dostupnost resursa
-const { from, to } = getTimeRange();
-checkBeebotteResources(CHANNEL, [RESOURCE1, RESOURCE2], from, to, token);
-
-// Pokreni inicijalni fetch
-fetchData();
-
+  const blob
 
