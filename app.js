@@ -50,6 +50,21 @@ async function fetchData(resource, range = "1h") {
   }
 }
 
+async function fetchLatestValue(resource) {
+  const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=1`;
+  const headers = { "X-Auth-Token": TOKEN };
+
+  try {
+    const response = await fetch(url, { headers });
+    const rawData = await response.json();
+    const value = rawData[0]?.data;
+    return Number(value);
+  } catch (err) {
+    console.error(`Greška pri fetchLatestValue za ${resource}:`, err);
+    return null;
+  }
+}
+
 async function refresh() {
   const data1 = await fetchData("bunar1", selectedRange);
   const data2 = await fetchData("bunar2", selectedRange);
@@ -63,8 +78,11 @@ async function refresh() {
   updateTrend("trend1", data1);
   updateTrend("trend2", data2);
 
-  updateCurrentValue("vrednost1", data1, 4);
-  updateCurrentValue("vrednost2", data2, 0.6);
+  const current1 = await fetchLatestValue("bunar1");
+  const current2 = await fetchLatestValue("bunar2");
+
+  updateCurrentValue("vrednost1", current1, 4);
+  updateCurrentValue("vrednost2", current2, 0.6);
 }
 
 function renderChart(canvasId, data, label) {
@@ -138,22 +156,28 @@ function updateTrend(elementId, data) {
     el.textContent = "N/A";
     return;
   }
-  const delta = data[data.length - 1].y - data[0].y;
+  const delta = data.at(-1).y - data[0].y;
   const trend = delta > 0 ? "📈 +" : delta < 0 ? "📉 " : "➖ ";
   el.textContent = `${trend}${delta.toFixed(2)}`;
 }
 
-function updateCurrentValue(elementId, data, minThreshold) {
+function updateCurrentValue(elementId, value, minThreshold) {
   const el = document.getElementById(elementId);
-  const current = data.at(-1)?.y;
-  if (current === undefined) {
+  if (value === null || isNaN(value)) {
     el.textContent = "Trenutno: N/A";
     el.style.color = "#e0e0e0";
+    el.classList.remove("alert");
     return;
   }
 
-  el.textContent = `Trenutno: ${current.toFixed(2)} m`;
-  el.style.color = current < minThreshold ? "red" : "#e0e0e0";
+  el.textContent = `Trenutno: ${value.toFixed(2)} m`;
+  if (value < minThreshold) {
+    el.style.color = "red";
+    el.classList.add("alert");
+  } else {
+    el.style.color = "#e0e0e0";
+    el.classList.remove("alert");
+  }
 }
 
 function exportBoth() {
@@ -178,4 +202,3 @@ function exportBoth() {
   link.download = "bunari.csv";
   link.click();
 }
-
