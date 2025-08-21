@@ -1,16 +1,22 @@
 <!DOCTYPE html>
 <html lang="sr">
 <head>
-  <meta charset="UTF-8">
-  <title>Monitoring Bunara</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monitoring bunara</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background-color: #121212; color: #fff; font-family: 'Segoe UI', sans-serif; }
+    canvas { max-width: 600px; margin: 20px auto; display: block; background-color: #1e1e1e; padding: 10px; border-radius: 8px; }
+  </style>
 </head>
 <body>
-  <h1>Monitoring nivoa vode</h1>
+  <h2 style="text-align:center;">Bunar 1</h2>
   <canvas id="chartBunar1"></canvas>
+
+  <h2 style="text-align:center;">Bunar 2</h2>
   <canvas id="chartBunar2"></canvas>
+
   <script src="script.js"></script>
 </body>
 </html>
-
