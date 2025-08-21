@@ -22,18 +22,15 @@ h1 {
   background-color: #1e1e1e;
   padding: 20px;
   border-radius: 10px;
-  width: 400px;
+  width: 300px;
   box-shadow: 0 0 10px #000;
-}
-
-canvas {
-  width: 100% !important;
-  height: 250px !important;
+  text-align: center;
 }
 
 .value {
   margin-top: 10px;
-  font-size: 1.2em;
+  font-size: 1.4em;
+  font-weight: bold;
 }
 
 .error {
