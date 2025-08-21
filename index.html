@@ -3,20 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monitoring bunara</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { background-color: #121212; color: #fff; font-family: 'Segoe UI', sans-serif; }
-    canvas { max-width: 600px; margin: 20px auto; display: block; background-color: #1e1e1e; padding: 10px; border-radius: 8px; }
-  </style>
+  <title>Bunari – Nivoi</title>
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h2 style="text-align:center;">Bunar 1</h2>
-  <canvas id="chartBunar1"></canvas>
+  <div class="container">
+    <header class="header">
+      <h1>📡 Nivoi bunara</h1>
+      <div class="header-controls">
+        <label for="rangeSelector">Opseg:</label>
+        <select id="rangeSelector">
+          <option value="1h">1h</option>
+          <option value="6h">6h</option>
+          <option value="12h">12h</option>
+          <option value="24h">24h</option>
+          <option value="7d">7d</option>
+        </select>
+        <button id="exportAll">📤 Export CSV (oba)</button>
+      </div>
+    </header>
 
-  <h2 style="text-align:center;">Bunar 2</h2>
-  <canvas id="chartBunar2"></canvas>
+    <main class="grid">
+      <section class="card">
+        <div class="card-head">
+          <h2>Bunar 1</h2>
+          <div class="value big" id="value1">—</div>
+          <div class="status" id="status1"></div>
+        </div>
+        <canvas id="chart1" height="120"></canvas>
+      </section>
 
-  <script src="script.js"></script>
+      <section class="card">
+        <div class="card-head">
+          <h2>Bunar 2</h2>
+          <div class="value big" id="value2">—</div>
+          <div class="status" id="status2"></div>
+        </div>
+        <canvas id="chart2" height="120"></canvas>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <small>Automatsko osvežavanje na 30 s • PWA podržana (Dodaj na ekran)</small>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
 </body>
 </html>
