@@ -1,150 +1,38 @@
-const CHANNEL = "nivoi_bunara";
-const TOKEN = "token_dlVQqzrALZ6DsGjF";
-const LIMIT = 300;
+let chart1, chart2;
+let lastData1 = [], lastData2 = [];
 
-let selectedRange = "1h";
-
-document.addEventListener("DOMContentLoaded", () => {
-  const selector = document.getElementById("rangeSelector");
-  selector.value = localStorage.getItem("selectedRange") || "1h";
-  selectedRange = selector.value;
-  selector.addEventListener("change", updateRange);
-
-  refresh();
-  setInterval(refresh, 30000);
-});
-
-function updateRange() {
-  selectedRange = document.getElementById("rangeSelector").value;
-  localStorage.setItem("selectedRange", selectedRange);
-  refresh();
-}
-
-async function fetchData(resource, range = "1h") {
-  const url = `https://api.beebotte.com/v1/data/read/${CHANNEL}/${resource}?limit=${LIMIT}`;
-  const headers = { "X-Auth-Token": TOKEN };
-
-  try {
-    const response = await fetch(url, { headers });
-    const rawData = await response.json();
-
-    const now = Date.now();
-    const rangeMs = {
-      "1h": 60 * 60 * 1000,
-      "24h": 24 * 60 * 60 * 1000,
-      "7d": 7 * 24 * 60 * 60 * 1000
-    }[range];
-
-    const filtered = rawData
-      .filter(entry => entry.data !== null && !isNaN(Number(entry.data)))
-      .filter(entry => now - entry.ts <= rangeMs)
-      .map(entry => ({
-        x: new Date(entry.ts),
-        y: Number(entry.data)
-      }));
-
-    return filtered;
-  } catch (err) {
-    console.error(`Greška za ${resource}:`, err);
-    return [];
-  }
-}
-
-async function refresh() {
-  const data1 = await fetchData("bunar1", selectedRange);
-  const data2 = await fetchData("bunar2", selectedRange);
-
-  window.lastData1 = data1;
-  window.lastData2 = data2;
-
-  renderChart("grafikon1", data1, "Bunar 1");
-  renderChart("grafikon2", data2, "Bunar 2");
-
-  updateTrend("trend1", data1);
-  updateTrend("trend2", data2);
-
-  updateCurrentValue("vrednost1", data1, 4);
-  updateCurrentValue("vrednost2", data2, 0.6);
-}
-
-function renderChart(canvasId, data, label) {
-  const ctx = document.getElementById(canvasId).getContext("2d");
-
-  if (window[canvasId + "_chart"]) {
-    window[canvasId + "_chart"].destroy();
-  }
-
-  let yMin = 0;
-  let yMax = canvasId === "grafikon1" ? 10 : 4;
-
-  let timeUnit = "minute";
-  let displayFormats = {
-    minute: "HH:mm",
-    hour: "dd.MM HH",
-    day: "dd.MM"
-  };
-
-  if (selectedRange === "24h") timeUnit = "hour";
-  if (selectedRange === "7d") timeUnit = "day";
-
-  window[canvasId + "_chart"] = new Chart(ctx, {
-    type: "line",
+function createChart(ctx, label) {
+  return new Chart(ctx, {
+    type: 'line',
     data: {
       datasets: [{
-        label,
-        data,
-        borderColor: "#00bcd4",
-        backgroundColor: "rgba(0,188,212,0.2)",
-        fill: true,
-        tension: 0.3,
-        pointRadius: 0
+        label: label,
+        data: [],
+        borderColor: '#00bcd4',
+        backgroundColor: 'rgba(0, 188, 212, 0.2)',
+        tension: 0.3
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
       scales: {
-        x: {
-          type: "time",
-          time: {
-            unit: timeUnit,
-            displayFormats: displayFormats,
-            tooltipFormat: displayFormats[timeUnit]
-          },
-          title: {
-            display: true,
-            text: "Vreme"
-          }
-        },
-        y: {
-          min: yMin,
-          max: yMax,
-          title: {
-            display: true,
-            text: "Vrednost"
-          }
-        }
-      },
-      plugins: {
-        legend: { display: false }
+        x: { type: 'time', time: { unit: 'minute' } },
+        y: { beginAtZero: true }
       }
     }
   });
 }
 
-function updateTrend(elementId, data) {
-  const el = document.getElementById(elementId);
-  if (data.length < 2) {
-    el.textContent = "N/A";
-    return;
-  }
-  const delta = data[data.length - 1].y - data[0].y;
-  const trend = delta > 0 ? "📈 +" : delta < 0 ? "📉 " : "➖ ";
-  el.textContent = `${trend}${delta.toFixed(2)}`;
+function updateChart(chart, data) {
+  chart.data.datasets[0].data = data;
+  chart.update();
 }
 
 function updateCurrentValue(elementId, data, minThreshold) {
   const el = document.getElementById(elementId);
+  if (!el) {
+    console.warn(`Element ${elementId} ne postoji u DOM-u`);
+    return;
+  }
 
   if (!Array.isArray(data) || data.length === 0) {
     el.textContent = "Trenutno: N/A";
@@ -154,30 +42,38 @@ function updateCurrentValue(elementId, data, minThreshold) {
 
   const current = data[data.length - 1].y;
 
+  if (current === 0) {
+    el.innerHTML = `Trenutno: 0.00 m <span style="font-size:1.2em;">🟠</span>`;
+    el.style.color = "#ff9800";
+    return;
+  }
+
   el.textContent = `Trenutno: ${current.toFixed(2)} m`;
   el.style.color = current < minThreshold ? "red" : "#e0e0e0";
 }
 
-function exportBoth() {
-  const data1 = window.lastData1 || [];
-  const data2 = window.lastData2 || [];
+function refresh() {
+  fetch("https://api.beebotte.com/v1/data/read/bunar1?limit=50")
+    .then(res => res.json())
+    .then(data => {
+      lastData1 = data.map(d => ({ x: new Date(d.timestamp), y: parseFloat(d.data) }));
+      updateChart(chart1, lastData1);
+      updateCurrentValue("vrednost1", lastData1, 1.0);
+    });
 
-  const timestamps = new Set([
-    ...data1.map(d => d.x.toISOString()),
-    ...data2.map(d => d.x.toISOString())
-  ]);
-
-  const rows = Array.from(timestamps).sort().map(ts => {
-    const val1 = data1.find(d => d.x.toISOString() === ts)?.y ?? "";
-    const val2 = data2.find(d => d.x.toISOString() === ts)?.y ?? "";
-    return `${ts},${val1},${val2}`;
-  });
-
-  const csv = "timestamp,bunar1,bunar2\n" + rows.join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "bunari.csv";
-  link.click();
+  fetch("https://api.beebotte.com/v1/data/read/bunar2?limit=50")
+    .then(res => res.json())
+    .then(data => {
+      lastData2 = data.map(d => ({ x: new Date(d.timestamp), y: parseFloat(d.data) }));
+      updateChart(chart2, lastData2);
+      updateCurrentValue("vrednost2", lastData2, 1.0);
+    });
 }
+
+window.onload = () => {
+  chart1 = createChart(document.getElementById("chart1"), "Bunar 1");
+  chart2 = createChart(document.getElementById("chart2"), "Bunar 2");
+  refresh();
+  setInterval(refresh, 60000);
+};
 
