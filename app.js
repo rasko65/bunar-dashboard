@@ -1,37 +1,40 @@
 async function fetchData(channel, resource, token) {
-  const url = `https://api.beebotte.com/v1/history/${channel}/${resource}?limit=100`;
-  const headers = {
-    'X-Auth-Token': token
-  };
+  const url = `https://api.beebotte.com/v1/history/${channel}/${resource}?limit=50`;
+  const headers = { 'X-Auth-Token': token };
 
   try {
     const response = await fetch(url, { headers });
-    const rawData = await response.json();
 
-    console.log(`📦 Raw podaci za ${resource}:`, rawData);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ API greška (${response.status}):`, errorText);
 
-    if (!Array.isArray(rawData) || rawData.length === 0) {
-      console.warn(`⚠️ Nema podataka za ${resource}`);
+      const errorBox = document.getElementById('errorBox');
+      if (errorBox) {
+        errorBox.textContent = `Greška: ${response.status} – ${errorText}`;
+        errorBox.style.display = 'block';
+      }
+
       return [];
     }
+
+    const rawData = await response.json();
+    console.log(`📦 Raw podaci za ${resource}:`, rawData);
 
     const parsedData = rawData.map(entry => ({
       x: new Date(entry.timestamp),
       y: Number(entry.data)
     }));
 
-    console.log(`✅ Parsirani podaci za ${resource}:`, parsedData);
     return parsedData;
   } catch (error) {
-    console.error(`❌ Greška pri fetchovanju ${resource}:`, error);
+    console.error(`❌ Fetch error za ${resource}:`, error);
     return [];
   }
 }
 
 function renderChart(canvasId, data, label, color) {
   const canvas = document.getElementById(canvasId);
-  console.log(`🖼️ Canvas za ${canvasId}:`, canvas);
-
   if (!canvas) {
     console.error(`❌ Canvas ${canvasId} nije pronađen`);
     return;
@@ -59,13 +62,9 @@ function renderChart(canvasId, data, label, color) {
 
 function updateCurrentValue(elementId, data) {
   const value = data[data.length - 1]?.y;
-  console.log(`📍 Trenutna vrednost za ${elementId}:`, value);
-
   const el = document.getElementById(elementId);
   if (el) {
     el.textContent = value !== undefined ? value.toFixed(2) : 'N/A';
-  } else {
-    console.warn(`⚠️ Element ${elementId} nije pronađen`);
   }
 }
 
@@ -83,6 +82,7 @@ async function initDashboard() {
   updateCurrentValue('valueBunar2', bunar2Data);
 }
 
+// Automatski refresh na svakih 60 sekundi
 initDashboard();
-
+setInterval(initDashboard, 60000);
 
