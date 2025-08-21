@@ -57,14 +57,17 @@ async function refresh() {
   window.lastData1 = data1;
   window.lastData2 = data2;
 
-  renderChart("grafikon1", data1, "Bunar 1");
-  renderChart("grafikon2", data2, "Bunar 2");
+  renderChart("grafikon1", data1, "Bunar 1", 0, 10);
+  renderChart("grafikon2", data2, "Bunar 2", 0, 4);
 
   updateTrend("trend1", data1);
   updateTrend("trend2", data2);
+
+  updateCurrentValue("current1", data1, 4);
+  updateCurrentValue("current2", data2, 0.6);
 }
 
-function renderChart(canvasId, data, label) {
+function renderChart(canvasId, data, label, yMin, yMax) {
   const ctx = document.getElementById(canvasId).getContext("2d");
 
   if (window[canvasId + "_chart"]) {
@@ -100,6 +103,8 @@ function renderChart(canvasId, data, label) {
           }
         },
         y: {
+          min: yMin,
+          max: yMax,
           title: {
             display: true,
             text: "Vrednost"
@@ -124,14 +129,33 @@ function updateTrend(elementId, data) {
   el.textContent = `${trend}${delta.toFixed(2)}`;
 }
 
-function exportCSV(data, filename) {
-  if (!data || data.length === 0) return;
-
-  const rows = data.map(d => `${d.x.toISOString()},${d.y}`);
-  const csv = "timestamp,value\n" + rows.join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  link.click();
+function updateCurrentValue(elementId, data, minThreshold) {
+  const el = document.getElementById(elementId);
+  if (!data.length) {
+    el.textContent = "Trenutna: --";
+    return;
+  }
+  const value = data[data.length - 1].y;
+  el.textContent = `Trenutna: ${value.toFixed(2)}m`;
+  el.style.color = value < minThreshold ? "#ff5252" : "#e0e0e0";
 }
+
+function exportCombinedCSV() {
+  const data1 = window.lastData1 || [];
+  const data2 = window.lastData2 || [];
+
+  const timestamps = new Set([...data1.map(d => d.x.toISOString()), ...data2.map(d => d.x.toISOString())]);
+  const sorted = Array.from(timestamps).sort();
+
+  const map1 = Object.fromEntries(data1.map(d => [d.x.toISOString(), d.y]));
+  const map2 = Object.fromEntries(data2.map(d => [d.x.toISOString(), d.y]));
+
+  const rows = sorted.map(ts => {
+    const val1 = map1[ts] ?? "";
+    const val2 = map2[ts] ?? "";
+    return `${ts},${val1},${val2}`;
+  });
+
+  const csv = "timestamp,bunar1,bunar2\n" + rows.join("\n");
+  const blob = new Blob([csv], { type: "
+
