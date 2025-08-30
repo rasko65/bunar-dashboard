@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   selector.addEventListener("change", updateRange);
 
   refresh();
-  setInterval(refresh, 30000);
+  setInterval(refresh, 15000);
 });
 
 function updateRange() {
